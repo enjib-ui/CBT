@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Guru - Upload Soal Excel</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background: white;
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 600px;
+    }
+    h2 { text-align: center; margin-bottom: 1rem; }
+    input, button {
+      width: 100%;
+      margin-top: 1rem;
+      padding: 0.8rem;
+      border-radius: 0.5rem;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #ff6b6b;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    button:hover { background: #d64545; }
+    #statusMsg, #loginMsg { margin-top: 1rem; font-weight: bold; text-align: center; }
+    .success { color: green; }
+    .error { color: red; }
+    #uploadSection { display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <!-- ✅ Form Login Guru -->
+    <div id="loginSection">
+      <h2>Login Guru</h2>
+      <input type="email" id="guruEmail" placeholder="Email Guru" required>
+      <input type="password" id="guruPassword" placeholder="Password" required>
+      <button id="loginBtn">Login</button>
+      <div id="loginMsg"></div>
+    </div>
+
+    <!-- ✅ Upload Soal, hanya muncul setelah login guru -->
+    <div id="uploadSection">
+      <h2>Upload Soal dari Excel</h2>
+      <input type="file" id="fileInput" accept=".xlsx, .xls" />
+      <button id="uploadBtn">Upload & Simpan ke Firestore</button>
+      <button id="logoutBtn" style="background:#555;">Logout</button>
+      <div id="statusMsg"></div>
+    </div>
+  </div>
+
+  <!-- ✅ SheetJS untuk baca Excel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <!-- ✅ Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } 
+      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc } 
+      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+    // Konfigurasi Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
+      authDomain: "authfirebase-4a2ce.firebaseapp.com",
+      projectId: "authfirebase-4a2ce",
+      storageBucket: "authfirebase-4a2ce.appspot.com",
+      messagingSenderId: "395028121712",
+      appId: "1:395028121712:web:8bf3d5470c13204bef8cb5"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const loginSection = document.getElementById("loginSection");
+    const uploadSection = document.getElementById("uploadSection");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const loginMsg = document.getElementById("loginMsg");
+
+    const fileInput = document.getElementById("fileInput");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const statusMsg = document.getElementById("statusMsg");
+
+    // ✅ Daftar email guru yang diizinkan
+    const allowedGuruEmails = ["muhammad.mujib2143@guru.sma.belajar.id"];
+
+    // ✅ Login Guru
+    loginBtn.addEventListener("click", async () => {
+      const email = document.getElementById("guruEmail").value.trim();
+      const password = document.getElementById("guruPassword").value;
+
+      if (!allowedGuruEmails.includes(email)) {
+        loginMsg.textContent = "❌ Email ini tidak diizinkan untuk login sebagai guru.";
+        loginMsg.className = "error";
+        return;
+      }
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        loginMsg.textContent = "";
+      } catch (err) {
+        loginMsg.textContent = "❌ Login gagal: " + err.message;
+        loginMsg.className = "error";
+      }
+    });
+
+    // ✅ Logout
+    logoutBtn.addEventListener("click", async () => {
+      await signOut(auth);
+      loginSection.style.display = "block";
+      uploadSection.style.display = "none";
+    });
+
+    // ✅ Cek login status
+    onAuthStateChanged(auth, (user) => {
+      if (user && allowedGuruEmails.includes(user.email)) {
+        loginSection.style.display = "none";
+        uploadSection.style.display = "block";
+      } else {
+        loginSection.style.display = "block";
+        uploadSection.style.display = "none";
+      }
+    });
+
+    // ✅ Upload Excel ke Firestore
+    uploadBtn.addEventListener("click", async () => {
+      const file = fileInput.files[0];
+      if (!file) {
+        statusMsg.textContent = "❌ Pilih file Excel terlebih dahulu!";
+        statusMsg.className = "error";
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(sheet);
+
+          let count = 0;
+          for (let row of rows) {
+            if (!row.text || !row.options) continue;
+            const text = row.text;
+            const options = row.options.split(",").map(opt => opt.trim());
+            await addDoc(collection(db, "questions"), {
+              text: text,
+              options: options,
+              correct: row.correct || null
+            });
+            count++;
+          }
+
+          statusMsg.textContent = `✅ ${count} soal berhasil di-upload!`;
+          statusMsg.className = "success";
+        } catch (err) {
+          console.error("Error:", err);
+          statusMsg.textContent = "❌ Gagal membaca/simpan soal!";
+          statusMsg.className = "error";
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  </script>
+</body>
+</html>
