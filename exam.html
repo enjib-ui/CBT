@@ -87,7 +87,8 @@
         return;
       }
       const q = soal[currentIndex];
-      let html = `<h3>Soal ${currentIndex+1}</h3><p>${q.Pertanyaan}</p><div class="options">`;
+      const soalText = q.Pertanyaan || q.pertanyaan || q.soal || "Soal tidak ditemukan";
+      let html = `<h3>Soal ${currentIndex+1}</h3><p>${soalText}</p><div class="options">`;
       ["A","B","C","D","E"].forEach(opt => {
         if (q[opt]) {
           const checked = jawaban[currentIndex] === opt ? "checked" : "";
