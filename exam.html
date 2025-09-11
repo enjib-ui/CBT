@@ -12,7 +12,8 @@
   <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-    import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    import { getFirestore, doc, onSnapshot, collection, addDoc, serverTimestamp } 
+      from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
@@ -57,13 +58,23 @@
       }
     });
 
-    // Kumpulkan jawaban
-    window.submitJawaban = function() {
+    // Kumpulkan jawaban & simpan ke Firestore
+    window.submitJawaban = async function() {
       const inputs = document.querySelectorAll("input[type=radio]:checked");
       inputs.forEach(inp => {
         jawabanSiswa[inp.name] = inp.value;
       });
-      alert("Jawaban dikumpulkan (sementara hanya di browser): " + JSON.stringify(jawabanSiswa));
+
+      try {
+        await addDoc(collection(db, "jawaban"), {
+          jawaban: jawabanSiswa,
+          waktu: serverTimestamp()
+        });
+        alert("✅ Jawaban berhasil disimpan ke Firestore!");
+      } catch (err) {
+        console.error("❌ Gagal simpan jawaban:", err);
+        alert("Gagal menyimpan jawaban.");
+      }
     };
   </script>
 </body>
