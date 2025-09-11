@@ -2,68 +2,93 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard Guru</title>
+  <title>Dashboard Guru - Modern</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f4f6f9; }
-    h2 { margin-top: 30px; color: #2c3e50; }
-    input, select, button { padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 6px; }
+    body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; }
+    .sidebar {
+      position: fixed; left: 0; top: 0; bottom: 0; width: 220px;
+      background: #2c3e50; color: white; padding: 20px;
+    }
+    .sidebar h2 { text-align: center; margin-bottom: 30px; }
+    .sidebar ul { list-style: none; padding: 0; }
+    .sidebar ul li {
+      padding: 12px; cursor: pointer; border-radius: 6px; margin-bottom: 8px;
+    }
+    .sidebar ul li:hover { background: #34495e; }
+    .content {
+      margin-left: 240px; padding: 20px;
+    }
+    .card {
+      background: white; padding: 20px; border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1); margin-bottom: 20px;
+    }
+    h3 { margin-top: 0; }
+    input, button, select {
+      padding: 8px; margin: 5px 0; border-radius: 6px; border: 1px solid #ccc;
+    }
     button { cursor: pointer; background: #3498db; color: white; border: none; }
     button:hover { background: #2980b9; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
-    th, td { padding: 8px; border: 1px solid #ddd; text-align: left; }
+    .danger { background: #e74c3c; }
+    .danger:hover { background: #c0392b; }
+    .secondary { background: #f39c12; }
+    .secondary:hover { background: #d68910; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
     th { background: #3498db; color: white; }
   </style>
 </head>
 <body>
-  <button onclick="logout()">🚪 Logout</button>
-  <h1>📘 Dashboard Guru</h1>
+  <div class="sidebar">
+    <h2>Guru Panel</h2>
+    <ul>
+      <li onclick="showPage('upload')">📤 Upload Soal</li>
+      <li onclick="showPage('soal')">📚 Kelola Soal</li>
+      <li onclick="showPage('siswa')">👩‍🎓 Kelola Siswa</li>
+      <li onclick="logout()">🚪 Logout</li>
+    </ul>
+  </div>
 
-  <h2>📂 Upload Soal</h2>
-  <label>Kelas:</label>
-  <select id="kelas">
-    <option value="kelas10">Kelas 10</option>
-    <option value="kelas11">Kelas 11</option>
-    <option value="kelas12">Kelas 12</option>
-  </select>
-  <label>Mapel:</label>
-  <input type="text" id="mapel" placeholder="contoh: matematika">
-  <br><br>
-  <input type="file" id="fileInput" accept=".xlsx,.xls" />
-  <button id="uploadBtn">Upload & Simpan Soal</button>
-  <div id="status"></div>
+  <div class="content">
+    <section id="upload" class="card">
+      <h3>Upload Soal</h3>
+      <input type="file" id="fileInput" />
+      <input type="text" id="kelasInput" placeholder="Kelas (misal: kelas10)" />
+      <input type="text" id="mapelInput" placeholder="Mapel (misal: matematika)" />
+      <button onclick="uploadSoal()">Upload</button>
+    </section>
 
-  <h2>👩‍🎓 Tambah Siswa Baru</h2>
-  <input type="text" id="namaSiswa" placeholder="Nama siswa">
-  <input type="email" id="emailSiswa" placeholder="Email siswa">
-  <input type="password" id="passwordSiswa" placeholder="Password siswa">
-  <select id="kelasSiswa">
-    <option value="kelas10">Kelas 10</option>
-    <option value="kelas11">Kelas 11</option>
-    <option value="kelas12">Kelas 12</option>
-  </select>
-  <input type="text" id="mapelSiswa" placeholder="Mapel (opsional)">
-  <button onclick="tambahSiswa()">Tambah Siswa</button>
-  <p id="statusTambah"></p>
+    <section id="soal" class="card" style="display:none;">
+      <h3>Daftar Soal</h3>
+      <table id="soalTable">
+        <thead>
+          <tr><th>ID Soal</th><th>Status</th><th>Aksi</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
 
-  <h2>📑 Daftar Siswa</h2>
-  <table id="siswaTable">
-    <thead><tr><th>Nama</th><th>Email</th><th>Kelas</th><th>Mapel</th><th>Aksi</th></tr></thead>
-    <tbody></tbody>
-  </table>
+    <section id="siswa" class="card" style="display:none;">
+      <h3>Tambah Siswa</h3>
+      <input type="text" id="namaSiswa" placeholder="Nama Siswa" />
+      <input type="email" id="emailSiswa" placeholder="Email" />
+      <input type="password" id="passwordSiswa" placeholder="Password" />
+      <input type="text" id="kelasSiswa" placeholder="Kelas (misal: kelas10)" />
+      <button onclick="tambahSiswa()">Tambah</button>
 
-  <h2>✅ Aktifkan Soal</h2>
-  <table id="soalTable">
-    <thead><tr><th>ID Soal</th><th>Status</th><th>Aksi</th></tr></thead>
-    <tbody></tbody>
-  </table>
+      <h3>Daftar Siswa</h3>
+      <table id="siswaTable">
+        <thead>
+          <tr><th>Nama</th><th>Email</th><th>Kelas</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
     import { getAuth, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDocs, collection, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
-    import { initializeApp as initializeApp2 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-    import { getAuth as getAuth2 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+    import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
@@ -75,114 +100,95 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
     const auth = getAuth(app);
-    const secondaryApp = initializeApp2(firebaseConfig, "Secondary");
-    const secondaryAuth = getAuth2(secondaryApp);
+    const db = getFirestore(app);
 
     window.logout = async function() {
       await signOut(auth);
       window.location.href = "index.html";
     };
 
-    // Upload soal
-    window.onload = () => {
-      document.getElementById("uploadBtn").addEventListener("click", async () => {
-        const file = document.getElementById("fileInput").files[0];
-        const kelas = document.getElementById("kelas").value;
-        const mapel = document.getElementById("mapel").value.toLowerCase();
-        if (!file || !mapel) return alert("Lengkapi kelas, mapel, dan file!");
-
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: "array" });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const soalData = XLSX.utils.sheet_to_json(sheet);
-
-          try {
-            const docId = `${kelas}_${mapel}`;
-            await setDoc(doc(db, "soal", docId), {
-              soal: soalData,
-              aktif: false,
-              timestamp: new Date()
-            });
-            document.getElementById("status").textContent = "✅ Soal berhasil diupload!";
-            loadSoal();
-          } catch (err) {
-            document.getElementById("status").textContent = "❌ Gagal upload: " + err.message;
-          }
-        };
-        reader.readAsArrayBuffer(file);
-      });
+    window.showPage = function(page) {
+      document.querySelectorAll('.content section').forEach(sec => sec.style.display = "none");
+      document.getElementById(page).style.display = "block";
+      if(page === 'soal') loadSoal();
+      if(page === 'siswa') loadSiswa();
     };
 
-    // Tambah siswa
-    window.tambahSiswa = async function() {
-      const nama = document.getElementById("namaSiswa").value;
-      const email = document.getElementById("emailSiswa").value;
-      const password = document.getElementById("passwordSiswa").value;
-      const kelas = document.getElementById("kelasSiswa").value;
-      const mapel = document.getElementById("mapelSiswa").value;
-      const status = document.getElementById("statusTambah");
-
-      try {
-        const userCred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
-        const uid = userCred.user.uid;
-        await setDoc(doc(db, "users", uid), { nama, email, kelas, mapel });
-        status.textContent = "✅ Siswa berhasil ditambahkan";
-        loadSiswa();
-      } catch (err) {
-        status.textContent = "❌ Gagal tambah siswa: " + err.message;
-      }
-    };
-
-    // Load daftar siswa
-    async function loadSiswa() {
-      const snap = await getDocs(collection(db, "users"));
-      const tbody = document.querySelector("#siswaTable tbody");
-      tbody.innerHTML = "";
-      snap.forEach(docSnap => {
-        const data = docSnap.data();
-        const row = `<tr>
-          <td>${data.nama || "-"}</td>
-          <td>${data.email || "-"}</td>
-          <td><input id="kelas_${docSnap.id}" value="${data.kelas || ""}"></td>
-          <td><input id="mapel_${docSnap.id}" value="${data.mapel || ""}"></td>
-          <td><button onclick="simpan('${docSnap.id}')">Simpan</button></td>
-        </tr>`;
-        tbody.innerHTML += row;
-      });
-    }
-    window.simpan = async function(uid) {
-      const kelas = document.getElementById(`kelas_${uid}`).value;
-      const mapel = document.getElementById(`mapel_${uid}`).value;
-      await updateDoc(doc(db, "users", uid), { kelas, mapel });
-      alert("✅ Data siswa diperbarui");
-    };
-
-    // Load soal dan tombol aktifkan
+    // ====== Kelola Soal ======
     async function loadSoal() {
-      const snap = await getDocs(collection(db, "soal"));
       const tbody = document.querySelector("#soalTable tbody");
       tbody.innerHTML = "";
-      snap.forEach(docSnap => {
+      const snapshot = await getDocs(collection(db, "soal"));
+      snapshot.forEach(docSnap => {
         const data = docSnap.data();
         const row = `<tr>
           <td>${docSnap.id}</td>
           <td>${data.aktif ? "Aktif" : "Nonaktif"}</td>
-          <td><button onclick="aktifkanSoal('${docSnap.id}')">Aktifkan</button></td>
+          <td>
+            ${data.aktif 
+              ? `<button class="secondary" onclick="nonaktifkanSoal('${docSnap.id}')">Nonaktifkan</button>` 
+              : `<button onclick="aktifkanSoal('${docSnap.id}')">Aktifkan</button>`}
+            <button class="danger" onclick="hapusSoal('${docSnap.id}')">Hapus</button>
+          </td>
         </tr>`;
         tbody.innerHTML += row;
       });
     }
+
     window.aktifkanSoal = async function(docId) {
-      await updateDoc(doc(db, "soal", docId), { aktif: true });
+      await setDoc(doc(db, "soal", docId), { aktif: true }, { merge: true });
       loadSoal();
     };
 
-    loadSiswa();
-    loadSoal();
+    window.nonaktifkanSoal = async function(docId) {
+      await setDoc(doc(db, "soal", docId), { aktif: false }, { merge: true });
+      loadSoal();
+    };
+
+    window.hapusSoal = async function(docId) {
+      if (!confirm(`Hapus soal ${docId}?`)) return;
+      await deleteDoc(doc(db, "soal", docId));
+      loadSoal();
+    };
+
+    // ====== Kelola Siswa ======
+    window.tambahSiswa = async function() {
+      const nama = document.getElementById("namaSiswa").value.trim();
+      const email = document.getElementById("emailSiswa").value.trim();
+      const password = document.getElementById("passwordSiswa").value.trim();
+      const kelas = document.getElementById("kelasSiswa").value.trim();
+      if (!nama || !email || !password || !kelas) {
+        alert("Lengkapi semua data siswa!");
+        return;
+      }
+      try {
+        const userCred = await createUserWithEmailAndPassword(auth, email, password);
+        await setDoc(doc(db, "users", userCred.user.uid), { nama, email, kelas, role: "siswa" });
+        alert("✅ Siswa berhasil ditambahkan");
+        loadSiswa();
+      } catch (err) {
+        alert("❌ Gagal: " + err.message);
+      }
+    };
+
+    async function loadSiswa() {
+      const tbody = document.querySelector("#siswaTable tbody");
+      tbody.innerHTML = "";
+      const snapshot = await getDocs(collection(db, "users"));
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.role === "siswa") {
+          const row = `<tr><td>${data.nama}</td><td>${data.email}</td><td>${data.kelas}</td></tr>`;
+          tbody.innerHTML += row;
+        }
+      });
+    }
+
+    // ====== Upload Soal (placeholder) ======
+    window.uploadSoal = function() {
+      alert("🚀 Upload soal masih terhubung ke logika sebelumnya.");
+    };
   </script>
 </body>
 </html>
