@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hasil Ujian</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f6f9;
+      color: #2c3e50;
+    }
+    h2 { color: #34495e; }
+    select, input, button {
+      padding: 8px 12px;
+      margin: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background: #3498db;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h2>📊 Hasil Ujian</h2>
+
+  <label>Kelas:</label>
+  <select id="kelas">
+    <option value="kelas10">Kelas 10</option>
+    <option value="kelas11">Kelas 11</option>
+    <option value="kelas12">Kelas 12</option>
+  </select>
+
+  <label>Mapel:</label>
+  <input type="text" id="mapel" placeholder="contoh: matematika">
+
+  <button onclick="loadHasil()">Lihat Hasil</button>
+
+  <table id="hasilTable">
+    <thead>
+      <tr>
+        <th>Nama Siswa</th>
+        <th>Jawaban</th>
+        <th>Waktu Submit</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs, orderBy } 
+      from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.loadHasil = async function() {
+      const kelas = document.getElementById("kelas").value;
+      const mapel = document.getElementById("mapel").value.toLowerCase();
+      if (!mapel) return alert("Isi mapel terlebih dahulu!");
+
+      const q = query(
+        collection(db, "jawaban"),
+        where("kelas", "==", kelas),
+        where("mapel", "==", mapel),
+        orderBy("waktu", "desc")
+      );
+
+      const snap = await getDocs(q);
+      const tbody = document.querySelector("#hasilTable tbody");
+      tbody.innerHTML = "";
+
+      snap.forEach(docSnap => {
+        const data = docSnap.data();
+        const row = `<tr>
+          <td>${data.nama || "-"}</td>
+          <td>${JSON.stringify(data.jawaban)}</td>
+          <td>${data.waktu?.toDate().toLocaleString() || "-"}</td>
+        </tr>`;
+        tbody.innerHTML += row;
+      });
+
+      if (snap.empty) {
+        tbody.innerHTML = `<tr><td colspan="3">❌ Belum ada jawaban untuk kelas & mapel ini.</td></tr>`;
+      }
+    };
+  </script>
+</body>
+</html>
