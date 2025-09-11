@@ -84,7 +84,6 @@
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // 🚪 Arahkan berdasarkan email
         if (email.includes("guru")) {
           window.location.href = "guru.html";
         } else {

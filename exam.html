@@ -77,7 +77,6 @@
   <div id="soalContainer">Menunggu soal dari guru...</div>
   <button class="submit-btn" onclick="submitJawaban()">Kirim Jawaban</button>
 
-  <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
     import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
@@ -100,7 +99,6 @@
     const soalContainer = document.getElementById("soalContainer");
     let jawabanSiswa = {};
 
-    // Dengarkan soal terbaru dari guru
     onSnapshot(doc(db, "soal", "aktif"), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -134,7 +132,6 @@
       }
     });
 
-    // Kumpulkan jawaban & simpan ke Firestore
     window.submitJawaban = async function() {
       const inputs = document.querySelectorAll("input[type=radio]:checked");
       inputs.forEach(inp => {
@@ -153,12 +150,11 @@
       }
     };
 
-    // Fungsi logout
     window.logout = async function() {
       try {
         await signOut(auth);
         alert("Anda telah logout.");
-        window.location.href = "index.html"; // arahkan ke halaman login
+        window.location.href = "index.html";
       } catch (err) {
         console.error("Logout gagal:", err);
         alert("Logout gagal.");
