@@ -1,11 +1,23 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <title>Panel Guru</title>
+  <meta charset="UTF-8">
+  <title>Dashboard Guru</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f4f6f9; }
+    h2 { margin-top: 30px; color: #2c3e50; }
+    input, select, button { padding: 8px; margin: 5px; border: 1px solid #ccc; border-radius: 6px; }
+    button { cursor: pointer; background: #3498db; color: white; border: none; }
+    button:hover { background: #2980b9; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
+    th, td { padding: 8px; border: 1px solid #ddd; text-align: left; }
+    th { background: #3498db; color: white; }
+  </style>
 </head>
 <body>
   <button onclick="logout()">🚪 Logout</button>
+  <h1>📘 Dashboard Guru</h1>
+
   <h2>📂 Upload Soal</h2>
   <label>Kelas:</label>
   <select id="kelas">
@@ -13,7 +25,6 @@
     <option value="kelas11">Kelas 11</option>
     <option value="kelas12">Kelas 12</option>
   </select>
-  <br><br>
   <label>Mapel:</label>
   <input type="text" id="mapel" placeholder="contoh: matematika">
   <br><br>
@@ -21,57 +32,157 @@
   <button id="uploadBtn">Upload & Simpan Soal</button>
   <div id="status"></div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <h2>👩‍🎓 Tambah Siswa Baru</h2>
+  <input type="text" id="namaSiswa" placeholder="Nama siswa">
+  <input type="email" id="emailSiswa" placeholder="Email siswa">
+  <input type="password" id="passwordSiswa" placeholder="Password siswa">
+  <select id="kelasSiswa">
+    <option value="kelas10">Kelas 10</option>
+    <option value="kelas11">Kelas 11</option>
+    <option value="kelas12">Kelas 12</option>
+  </select>
+  <input type="text" id="mapelSiswa" placeholder="Mapel (opsional)">
+  <button onclick="tambahSiswa()">Tambah Siswa</button>
+  <p id="statusTambah"></p>
 
+  <h2>📑 Daftar Siswa</h2>
+  <table id="siswaTable">
+    <thead><tr><th>Nama</th><th>Email</th><th>Kelas</th><th>Mapel</th><th>Aksi</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>✅ Aktifkan Soal</h2>
+  <table id="soalTable">
+    <thead><tr><th>ID Soal</th><th>Status</th><th>Aksi</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    import { getAuth, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDocs, collection, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    import { initializeApp as initializeApp2 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+    import { getAuth as getAuth2 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
 
     const firebaseConfig = {
-  apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
-  authDomain: "authfirebase-4a2ce.firebaseapp.com",
-  projectId: "authfirebase-4a2ce",
-  storageBucket: "authfirebase-4a2ce.firebasestorage.app",
-  messagingSenderId: "395028121712",
-  appId: "1:395028121712:web:8bf3d5470c13204bef8cb5"
-};
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
 
     const app = initializeApp(firebaseConfig);
-    import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+    const db = getFirestore(app);
     const auth = getAuth(app);
+    const secondaryApp = initializeApp2(firebaseConfig, "Secondary");
+    const secondaryAuth = getAuth2(secondaryApp);
+
     window.logout = async function() {
       await signOut(auth);
       window.location.href = "index.html";
     };
 
-    const db = getFirestore(app);
+    // Upload soal
+    window.onload = () => {
+      document.getElementById("uploadBtn").addEventListener("click", async () => {
+        const file = document.getElementById("fileInput").files[0];
+        const kelas = document.getElementById("kelas").value;
+        const mapel = document.getElementById("mapel").value.toLowerCase();
+        if (!file || !mapel) return alert("Lengkapi kelas, mapel, dan file!");
 
-    document.getElementById("uploadBtn").addEventListener("click", async () => {
-      const file = document.getElementById("fileInput").files[0];
-      const kelas = document.getElementById("kelas").value;
-      const mapel = document.getElementById("mapel").value.toLowerCase();
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const soalData = XLSX.utils.sheet_to_json(sheet);
 
-      if (!file || !mapel) return alert("Lengkapi kelas, mapel, dan file!");
+          try {
+            const docId = `${kelas}_${mapel}`;
+            await setDoc(doc(db, "soal", docId), {
+              soal: soalData,
+              aktif: false,
+              timestamp: new Date()
+            });
+            document.getElementById("status").textContent = "✅ Soal berhasil diupload!";
+            loadSoal();
+          } catch (err) {
+            document.getElementById("status").textContent = "❌ Gagal upload: " + err.message;
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      });
+    };
 
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const soalData = XLSX.utils.sheet_to_json(sheet);
+    // Tambah siswa
+    window.tambahSiswa = async function() {
+      const nama = document.getElementById("namaSiswa").value;
+      const email = document.getElementById("emailSiswa").value;
+      const password = document.getElementById("passwordSiswa").value;
+      const kelas = document.getElementById("kelasSiswa").value;
+      const mapel = document.getElementById("mapelSiswa").value;
+      const status = document.getElementById("statusTambah");
 
-        try {
-          await setDoc(doc(db, "soal", `${kelas}_${mapel}`), {
-            soal: soalData,
-            timestamp: new Date()
-          });
-          document.getElementById("status").textContent = "✅ Soal berhasil diupload!";
-        } catch (err) {
-          document.getElementById("status").textContent = "❌ Gagal upload: " + err.message;
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    });
+      try {
+        const userCred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+        const uid = userCred.user.uid;
+        await setDoc(doc(db, "users", uid), { nama, email, kelas, mapel });
+        status.textContent = "✅ Siswa berhasil ditambahkan";
+        loadSiswa();
+      } catch (err) {
+        status.textContent = "❌ Gagal tambah siswa: " + err.message;
+      }
+    };
+
+    // Load daftar siswa
+    async function loadSiswa() {
+      const snap = await getDocs(collection(db, "users"));
+      const tbody = document.querySelector("#siswaTable tbody");
+      tbody.innerHTML = "";
+      snap.forEach(docSnap => {
+        const data = docSnap.data();
+        const row = `<tr>
+          <td>${data.nama || "-"}</td>
+          <td>${data.email || "-"}</td>
+          <td><input id="kelas_${docSnap.id}" value="${data.kelas || ""}"></td>
+          <td><input id="mapel_${docSnap.id}" value="${data.mapel || ""}"></td>
+          <td><button onclick="simpan('${docSnap.id}')">Simpan</button></td>
+        </tr>`;
+        tbody.innerHTML += row;
+      });
+    }
+    window.simpan = async function(uid) {
+      const kelas = document.getElementById(`kelas_${uid}`).value;
+      const mapel = document.getElementById(`mapel_${uid}`).value;
+      await updateDoc(doc(db, "users", uid), { kelas, mapel });
+      alert("✅ Data siswa diperbarui");
+    };
+
+    // Load soal dan tombol aktifkan
+    async function loadSoal() {
+      const snap = await getDocs(collection(db, "soal"));
+      const tbody = document.querySelector("#soalTable tbody");
+      tbody.innerHTML = "";
+      snap.forEach(docSnap => {
+        const data = docSnap.data();
+        const row = `<tr>
+          <td>${docSnap.id}</td>
+          <td>${data.aktif ? "Aktif" : "Nonaktif"}</td>
+          <td><button onclick="aktifkanSoal('${docSnap.id}')">Aktifkan</button></td>
+        </tr>`;
+        tbody.innerHTML += row;
+      });
+    }
+    window.aktifkanSoal = async function(docId) {
+      await updateDoc(doc(db, "soal", docId), { aktif: true });
+      loadSoal();
+    };
+
+    loadSiswa();
+    loadSoal();
   </script>
 </body>
 </html>

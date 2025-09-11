@@ -1,91 +1,141 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <title>Halaman Ujian</title>
+  <meta charset="UTF-8">
+  <title>Exam CBT</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 0; }
+    header { background: #3498db; color: white; padding: 15px; text-align: center; }
+    .container { display: flex; min-height: 100vh; }
+    .sidebar { width: 200px; background: #ecf0f1; padding: 15px; border-right: 1px solid #ccc; }
+    .sidebar h3 { margin-top: 0; }
+    .sidebar button { display: block; width: 100%; padding: 10px; margin: 5px 0; border: none; border-radius: 6px; background: #bdc3c7; cursor: pointer; }
+    .sidebar button.active { background: #3498db; color: white; }
+    .content { flex: 1; padding: 20px; }
+    .question-box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .options label { display: block; margin: 8px 0; padding: 8px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; }
+    .options input { margin-right: 10px; }
+    .nav-btns { margin-top: 15px; }
+    .nav-btns button { padding: 10px 15px; margin-right: 10px; border: none; border-radius: 6px; background: #3498db; color: white; cursor: pointer; }
+    .nav-btns button:hover { background: #2980b9; }
+  </style>
 </head>
 <body>
-  <button onclick="logout()">🚪 Logout</button>
-  <h2>📘 Ujian Online</h2>
-  <div id="navSoal"></div>
-  <div id="soalContainer">Menunggu soal...</div>
-  <button onclick="prevSoal()">⬅️ Sebelumnya</button>
-  <button onclick="nextSoal()">➡️ Selanjutnya</button>
-  <button onclick="submitJawaban()">✅ Kirim Jawaban</button>
+  <header>
+    <h2>Ujian Online CBT</h2>
+    <button onclick="logout()" style="float:right; margin-top:-40px; background:#e74c3c;">Logout</button>
+  </header>
+
+  <div class="container">
+    <div class="sidebar">
+      <h3>Nomor Soal</h3>
+      <div id="navSoal"></div>
+    </div>
+    <div class="content">
+      <div id="examArea" class="question-box">
+        <p>🔄 Memuat soal...</p>
+      </div>
+      <div class="nav-btns">
+        <button onclick="prevSoal()">⬅️ Sebelumnya</button>
+        <button onclick="nextSoal()">➡️ Selanjutnya</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-    import { getFirestore, doc, getDoc, onSnapshot, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
     const firebaseConfig = {
-  apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
-  authDomain: "authfirebase-4a2ce.firebaseapp.com",
-  projectId: "authfirebase-4a2ce",
-  storageBucket: "authfirebase-4a2ce.firebasestorage.app",
-  messagingSenderId: "395028121712",
-  appId: "1:395028121712:web:8bf3d5470c13204bef8cb5"
-};
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
 
     const app = initializeApp(firebaseConfig);
-    import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
     const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let soal = [];
+    let currentIndex = 0;
+    let jawaban = {};
+
     window.logout = async function() {
       await signOut(auth);
       window.location.href = "index.html";
     };
 
-    const db = getFirestore(app);
-    const auth = getAuth(app);
+    function renderNomorSoal() {
+      const nav = document.getElementById("navSoal");
+      nav.innerHTML = "";
+      soal.forEach((s, i) => {
+        const btn = document.createElement("button");
+        btn.textContent = i+1;
+        if (i === currentIndex) btn.classList.add("active");
+        btn.onclick = () => { saveJawaban(); currentIndex = i; renderSoal(); };
+        nav.appendChild(btn);
+      });
+    }
 
-    let semuaSoal = [];
-    let jawabanSiswa = {};
-    let currentIndex = 0;
+    function renderSoal() {
+      if (soal.length === 0) {
+        document.getElementById("examArea").innerHTML = "<p>❌ Belum ada ujian aktif untuk kelas ini</p>";
+        return;
+      }
+      const q = soal[currentIndex];
+      let html = `<h3>Soal ${currentIndex+1}</h3><p>${q.Pertanyaan}</p><div class="options">`;
+      ["A","B","C","D","E"].forEach(opt => {
+        if (q[opt]) {
+          const checked = jawaban[currentIndex] === opt ? "checked" : "";
+          html += `<label><input type="radio" name="opsi" value="${opt}" ${checked}> ${opt}. ${q[opt]}</label>`;
+        }
+      });
+      html += "</div>";
+      document.getElementById("examArea").innerHTML = html;
+      renderNomorSoal();
+    }
 
-    const soalContainer = document.getElementById("soalContainer");
-    const navSoal = document.getElementById("navSoal");
+    function saveJawaban() {
+      const pilihan = document.querySelector("input[name='opsi']:checked");
+      if (pilihan) jawaban[currentIndex] = pilihan.value;
+    }
+
+    window.nextSoal = function() {
+      saveJawaban();
+      if (currentIndex < soal.length-1) { currentIndex++; renderSoal(); }
+    };
+    window.prevSoal = function() {
+      saveJawaban();
+      if (currentIndex > 0) { currentIndex--; renderSoal(); }
+    };
 
     onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) {
-          const { kelas, mapel } = userDoc.data();
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const data = userSnap.data();
+          const kelas = data.kelas;
+          const mapel = data.mapel;
           const soalRef = doc(db, "soal", `${kelas}_${mapel}`);
-          onSnapshot(soalRef, (snap) => {
-            if (snap.exists()) {
-              semuaSoal = snap.data().soal;
-              tampilkanSoal(0);
-            } else {
-              soalContainer.innerHTML = "❌ Soal tidak ditemukan.";
-            }
-          });
+          const soalSnap = await getDoc(soalRef);
+          if (soalSnap.exists() && soalSnap.data().aktif) {
+            soal = soalSnap.data().soal;
+            renderSoal();
+          } else {
+            document.getElementById("examArea").innerHTML = "<p>❌ Belum ada ujian aktif untuk kelas ini</p>";
+          }
+        } else {
+          document.getElementById("examArea").innerHTML = "<p>❌ Data siswa tidak ditemukan</p>";
         }
       } else {
         window.location.href = "index.html";
       }
     });
-
-    function tampilkanSoal(i) {
-      currentIndex = i;
-      const row = semuaSoal[i]; if (!row) return;
-      const opsi = ["A","B","C","D","E"];
-      let opsiHTML = "";
-      opsi.forEach(o => { if (row[o]) { opsiHTML += `<label><input type="radio" name="soal${i}" value="${o}">${o}. ${row[o]}</label><br>`; } });
-      soalContainer.innerHTML = `<p><b>${i+1}.</b> ${row.Pertanyaan}</p>${opsiHTML}`;
-    }
-
-    function simpanJawaban() {
-      const selected = document.querySelector("input[name=soal"+currentIndex+"]:checked");
-      if (selected) jawabanSiswa["soal"+currentIndex] = selected.value;
-    }
-
-    window.nextSoal = function() { simpanJawaban(); if (currentIndex < semuaSoal.length-1) tampilkanSoal(currentIndex+1); };
-    window.prevSoal = function() { simpanJawaban(); if (currentIndex > 0) tampilkanSoal(currentIndex-1); };
-    window.submitJawaban = async function() {
-      simpanJawaban();
-      try { await addDoc(collection(db, "jawaban"), { jawaban: jawabanSiswa, waktu: serverTimestamp() }); alert("✅ Jawaban tersimpan!"); } 
-      catch (err) { alert("❌ Gagal simpan: "+err.message); }
-    };
   </script>
 </body>
 </html>
