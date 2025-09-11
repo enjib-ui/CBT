@@ -3,6 +3,57 @@
 <head>
   <meta charset="UTF-8" />
   <title>Halaman Ujian</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
+      margin: 0;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+      color: #2c3e50;
+    }
+    .soal-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+    .soal-card:hover {
+      transform: scale(1.01);
+    }
+    .opsi {
+      margin: 8px 0;
+      padding: 10px 15px;
+      border: 2px solid #3498db;
+      border-radius: 8px;
+      cursor: pointer;
+      display: block;
+      transition: 0.2s;
+    }
+    .opsi:hover {
+      background: #3498db;
+      color: #fff;
+    }
+    button {
+      display: block;
+      margin: 20px auto;
+      padding: 12px 25px;
+      background: #27ae60;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: 0.2s;
+    }
+    button:hover {
+      background: #219150;
+    }
+  </style>
 </head>
 <body>
   <h2>📘 Soal Ujian</h2>
@@ -38,18 +89,24 @@
 
         data.soal.forEach((row, i) => {
           const pertanyaan = row.Pertanyaan || `Soal ${i+1}`;
-          const opsiA = row.A || "A";
-          const opsiB = row.B || "B";
-          const opsiC = row.C || "C";
-          const opsiD = row.D || "D";
+          const opsi = ["A", "B", "C", "D", "E"];
+          let opsiHTML = "";
+
+          opsi.forEach(o => {
+            if (row[o]) {
+              opsiHTML += `
+                <label class="opsi">
+                  <input type="radio" name="soal${i}" value="${o}" style="display:none;">
+                  ${o}. ${row[o]}
+                </label>
+              `;
+            }
+          });
 
           soalContainer.innerHTML += `
-            <div style="margin-bottom:10px;">
+            <div class="soal-card">
               <p><b>${i+1}.</b> ${pertanyaan}</p>
-              <label><input type="radio" name="soal${i}" value="A"> A. ${opsiA}</label><br>
-              <label><input type="radio" name="soal${i}" value="B"> B. ${opsiB}</label><br>
-              <label><input type="radio" name="soal${i}" value="C"> C. ${opsiC}</label><br>
-              <label><input type="radio" name="soal${i}" value="D"> D. ${opsiD}</label>
+              ${opsiHTML}
             </div>
           `;
         });
