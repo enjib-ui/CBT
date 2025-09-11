@@ -89,6 +89,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
     import { getAuth, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
     import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    import * as XLSX from "https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
@@ -185,9 +186,43 @@
       });
     }
 
-    // ====== Upload Soal (placeholder) ======
+    // ====== Upload Soal ======
     window.uploadSoal = function() {
-      alert("🚀 Upload soal masih terhubung ke logika sebelumnya.");
+      const fileInput = document.getElementById("fileInput");
+      const kelas = document.getElementById("kelasInput").value.trim();
+      const mapel = document.getElementById("mapelInput").value.trim();
+
+      if (!fileInput.files[0] || !kelas || !mapel) {
+        alert("⚠️ Lengkapi file, kelas, dan mapel!");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+
+        const soal = rows.map(row => ({
+          Pertanyaan: row.Pertanyaan || row.soal || "",
+          A: row.A || "",
+          B: row.B || "",
+          C: row.C || "",
+          D: row.D || "",
+          E: row.E || "",
+          JawabanBenar: row.JawabanBenar || row.kunci || ""
+        }));
+
+        try {
+          await setDoc(doc(db, "soal", `${kelas}_${mapel}`), { soal, aktif: false });
+          alert("✅ Soal berhasil diupload");
+          loadSoal();
+        } catch (err) {
+          alert("❌ Gagal upload: " + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(fileInput.files[0]);
     };
   </script>
 </body>
