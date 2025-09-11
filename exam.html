@@ -10,9 +10,22 @@
       margin: 0;
       padding: 20px;
     }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
     h2 {
-      text-align: center;
       color: #2c3e50;
+    }
+    .logout-btn {
+      padding: 8px 16px;
+      background: #e74c3c;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
     }
     .soal-card {
       background: #fff;
@@ -38,7 +51,7 @@
       background: #3498db;
       color: #fff;
     }
-    button {
+    button.submit-btn {
       display: block;
       margin: 20px auto;
       padding: 12px 25px;
@@ -50,19 +63,24 @@
       font-size: 16px;
       transition: 0.2s;
     }
-    button:hover {
+    button.submit-btn:hover {
       background: #219150;
     }
   </style>
 </head>
 <body>
-  <h2>📘 Soal Ujian</h2>
+  <header>
+    <h2>📘 Soal Ujian</h2>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </header>
+
   <div id="soalContainer">Menunggu soal dari guru...</div>
-  <button onclick="submitJawaban()">Kirim Jawaban</button>
+  <button class="submit-btn" onclick="submitJawaban()">Kirim Jawaban</button>
 
   <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+    import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
     import { getFirestore, doc, onSnapshot, collection, addDoc, serverTimestamp } 
       from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
@@ -77,6 +95,7 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const auth = getAuth(app);
 
     const soalContainer = document.getElementById("soalContainer");
     let jawabanSiswa = {};
@@ -131,6 +150,18 @@
       } catch (err) {
         console.error("❌ Gagal simpan jawaban:", err);
         alert("Gagal menyimpan jawaban.");
+      }
+    };
+
+    // Fungsi logout
+    window.logout = async function() {
+      try {
+        await signOut(auth);
+        alert("Anda telah logout.");
+        window.location.href = "index.html"; // arahkan ke halaman login
+      } catch (err) {
+        console.error("Logout gagal:", err);
+        alert("Logout gagal.");
       }
     };
   </script>
