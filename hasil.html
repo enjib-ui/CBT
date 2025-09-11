@@ -38,6 +38,7 @@
   </style>
 </head>
 <body>
+  <button onclick="logout()">🚪 Logout</button>
   <h2>📊 Hasil Ujian</h2>
 
   <label>Kelas:</label>
@@ -69,15 +70,22 @@
       from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
     const firebaseConfig = {
-  apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
-  authDomain: "authfirebase-4a2ce.firebaseapp.com",
-  projectId: "authfirebase-4a2ce",
-  storageBucket: "authfirebase-4a2ce.firebasestorage.app",
-  messagingSenderId: "395028121712",
-  appId: "1:395028121712:web:8bf3d5470c13204bef8cb5"
-};
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
 
     const app = initializeApp(firebaseConfig);
+    import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+    const auth = getAuth(app);
+    window.logout = async function() {
+      await signOut(auth);
+      window.location.href = "index.html";
+    };
+
     const db = getFirestore(app);
 
     window.loadHasil = async function() {
