@@ -7,11 +7,16 @@
     body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 0; }
     header { background: #2c3e50; color: white; padding: 15px; text-align: center; }
     .container { padding: 20px; }
-    input, button { padding: 10px; margin: 5px 0; border-radius: 6px; border: 1px solid #ccc; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background: #3498db; color: white; }
+    input, button { padding: 8px; margin: 5px 0; border-radius: 6px; border: 1px solid #ccc; }
     button { cursor: pointer; background: #3498db; color: white; border: none; }
     button:hover { background: #2980b9; }
     .danger { background: #e74c3c; }
     .danger:hover { background: #c0392b; }
+    .secondary { background: #f39c12; }
+    .secondary:hover { background: #d68910; }
   </style>
 </head>
 <body>
@@ -21,20 +26,23 @@
   </header>
 
   <div class="container">
-    <h3>Manajemen Soal</h3>
-    <input type="text" id="kelasInput" placeholder="Kelas (misal: kelas10)"><br>
-    <input type="text" id="mapelInput" placeholder="Mapel (misal: matematika)"><br>
-    <input type="file" id="fileInput" accept=".xlsx"><br>
-    <button onclick="uploadSoal()">📤 Upload Soal</button>
-    <button onclick="aktifkanSoal()">✅ Aktifkan Soal</button>
-    <button class="danger" onclick="hapusSoalHandler()">🗑️ Hapus Soal</button>
+    <h3>Daftar Soal</h3>
+    <table id="soalTable">
+      <thead>
+        <tr>
+          <th>ID Soal</th>
+          <th>Status</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
     import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-    import { getFirestore, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
-    import * as XLSX from "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm";
+    import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
@@ -54,68 +62,58 @@
       window.location.href = "index.html";
     };
 
-    window.uploadSoal = async function() {
-      const kelas = document.getElementById("kelasInput").value.trim();
-      const mapel = document.getElementById("mapelInput").value.trim();
-      const file = document.getElementById("fileInput").files[0];
+    async function loadSoal() {
+      const tbody = document.querySelector("#soalTable tbody");
+      tbody.innerHTML = "";
+      const snapshot = await getDocs(collection(db, "soal"));
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const row = `<tr>
+          <td>${docSnap.id}</td>
+          <td>${data.aktif ? "Aktif" : "Nonaktif"}</td>
+          <td>
+            ${data.aktif 
+              ? `<button class="secondary" onclick="nonaktifkanSoal('${docSnap.id}')">Nonaktifkan</button>` 
+              : `<button onclick="aktifkanSoal('${docSnap.id}')">Aktifkan</button>`}
+            <button class="danger" onclick="hapusSoal('${docSnap.id}')">Hapus</button>
+          </td>
+        </tr>`;
+        tbody.innerHTML += row;
+      });
+    }
 
-      if (!kelas || !mapel || !file) {
-        alert("⚠️ Isi kelas, mapel, dan pilih file soal!");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const soal = XLSX.utils.sheet_to_json(sheet);
-
-        try {
-          await setDoc(doc(db, "soal", `${kelas}_${mapel}`), { soal, aktif: false });
-          alert("✅ Soal berhasil diupload");
-        } catch (err) {
-          alert("❌ Gagal upload soal: " + err.message);
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    };
-
-    window.aktifkanSoal = async function() {
-      const kelas = document.getElementById("kelasInput").value.trim();
-      const mapel = document.getElementById("mapelInput").value.trim();
-
-      if (!kelas || !mapel) {
-        alert("⚠️ Isi kelas dan mapel!");
-        return;
-      }
-
+    window.aktifkanSoal = async function(docId) {
       try {
-        await setDoc(doc(db, "soal", `${kelas}_${mapel}`), { aktif: true }, { merge: true });
+        await setDoc(doc(db, "soal", docId), { aktif: true }, { merge: true });
         alert("✅ Soal berhasil diaktifkan");
+        loadSoal();
       } catch (err) {
         alert("❌ Gagal mengaktifkan soal: " + err.message);
       }
     };
 
-    window.hapusSoalHandler = async function() {
-      const kelas = document.getElementById("kelasInput").value.trim();
-      const mapel = document.getElementById("mapelInput").value.trim();
-
-      if (!kelas || !mapel) {
-        alert("⚠️ Isi kelas dan mapel terlebih dahulu");
-        return;
-      }
-
-      if (!confirm(`Yakin ingin menghapus soal untuk ${kelas}_${mapel}?`)) return;
-
+    window.nonaktifkanSoal = async function(docId) {
       try {
-        await deleteDoc(doc(db, "soal", `${kelas}_${mapel}`));
-        alert("✅ Soal berhasil dihapus dari Firestore");
+        await setDoc(doc(db, "soal", docId), { aktif: false }, { merge: true });
+        alert("⛔ Soal berhasil dinonaktifkan");
+        loadSoal();
+      } catch (err) {
+        alert("❌ Gagal menonaktifkan soal: " + err.message);
+      }
+    };
+
+    window.hapusSoal = async function(docId) {
+      if (!confirm(`Yakin ingin menghapus soal ${docId}?`)) return;
+      try {
+        await deleteDoc(doc(db, "soal", docId));
+        alert("✅ Soal berhasil dihapus");
+        loadSoal();
       } catch (err) {
         alert("❌ Gagal menghapus soal: " + err.message);
       }
     };
+
+    loadSoal();
   </script>
 </body>
 </html>
