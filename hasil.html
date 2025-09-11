@@ -1,64 +1,37 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Hasil Ujian</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f4f6f9;
-      color: #2c3e50;
-    }
-    h2 { color: #34495e; }
-    select, input, button {
-      padding: 8px 12px;
-      margin: 5px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-      background: white;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
-    }
-    th, td {
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
-      text-align: left;
-    }
-    th {
-      background: #3498db;
-      color: white;
-    }
+    body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
+    header { background: #2c3e50; color: white; padding: 15px; text-align: center; }
+    input, button { padding: 10px; margin: 5px 0; border-radius: 6px; border: 1px solid #ccc; }
+    button { cursor: pointer; background: #3498db; color: white; border: none; }
+    button:hover { background: #2980b9; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background: #3498db; color: white; }
   </style>
 </head>
 <body>
-  <button onclick="logout()">🚪 Logout</button>
-  <h2>📊 Hasil Ujian</h2>
+  <header>
+    <h2>Hasil Ujian</h2>
+  </header>
 
-  <label>Kelas:</label>
-  <select id="kelas">
-    <option value="kelas10">Kelas 10</option>
-    <option value="kelas11">Kelas 11</option>
-    <option value="kelas12">Kelas 12</option>
-  </select>
-
-  <label>Mapel:</label>
-  <input type="text" id="mapel" placeholder="contoh: matematika">
-
-  <button onclick="loadHasil()">Lihat Hasil</button>
+  <div>
+    <input type="text" id="kelasInput" placeholder="Kelas (misal: kelas10)">
+    <input type="text" id="mapelInput" placeholder="Mapel (misal: matematika)">
+    <button onclick="loadHasil()">📊 Tampilkan Hasil</button>
+  </div>
 
   <table id="hasilTable">
     <thead>
       <tr>
-        <th>Nama Siswa</th>
+        <th>Nama</th>
+        <th>Email</th>
         <th>Jawaban</th>
-        <th>Waktu Submit</th>
+        <th>Skor</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -66,57 +39,60 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-    import { getFirestore, collection, query, where, getDocs, orderBy } 
-      from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
     const firebaseConfig = {
-  apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
-  authDomain: "authfirebase-4a2ce.firebaseapp.com",
-  projectId: "authfirebase-4a2ce",
-  storageBucket: "authfirebase-4a2ce.firebasestorage.app",
-  messagingSenderId: "395028121712",
-  appId: "1:395028121712:web:8bf3d5470c13204bef8cb5"
-};
-
-    const app = initializeApp(firebaseConfig);
-    import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-    const auth = getAuth(app);
-    window.logout = async function() {
-      await signOut(auth);
-      window.location.href = "index.html";
+      apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
+      authDomain: "authfirebase-4a2ce.firebaseapp.com",
+      projectId: "authfirebase-4a2ce",
+      storageBucket: "authfirebase-4a2ce.firebasestorage.app",
+      messagingSenderId: "395028121712",
+      appId: "1:395028121712:web:8bf3d5470c13204bef8cb5"
     };
 
+    const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
     window.loadHasil = async function() {
-      const kelas = document.getElementById("kelas").value;
-      const mapel = document.getElementById("mapel").value.toLowerCase();
-      if (!mapel) return alert("Isi mapel terlebih dahulu!");
+      const kelas = document.getElementById("kelasInput").value.trim();
+      const mapel = document.getElementById("mapelInput").value.trim();
+      if (!kelas || !mapel) {
+        alert("⚠️ Isi kelas dan mapel dulu!");
+        return;
+      }
 
-      const q = query(
-        collection(db, "jawaban"),
-        where("kelas", "==", kelas),
-        where("mapel", "==", mapel),
-        orderBy("waktu", "desc")
-      );
+      const soalRef = doc(db, "soal", `${kelas}_${mapel}`);
+      const soalSnap = await getDoc(soalRef);
+      let kunci = [];
+      if (soalSnap.exists()) {
+        kunci = soalSnap.data().soal.map(s => s.JawabanBenar || "");
+      }
 
-      const snap = await getDocs(q);
+      const colRef = collection(db, "jawaban");
+      const snapshot = await getDocs(colRef);
       const tbody = document.querySelector("#hasilTable tbody");
       tbody.innerHTML = "";
 
-      snap.forEach(docSnap => {
+      snapshot.forEach(docSnap => {
         const data = docSnap.data();
-        const row = `<tr>
-          <td>${data.nama || "-"}</td>
-          <td>${JSON.stringify(data.jawaban)}</td>
-          <td>${data.waktu?.toDate().toLocaleString() || "-"}</td>
-        </tr>`;
-        tbody.innerHTML += row;
-      });
+        if (data.kelas === kelas && data.mapel === mapel) {
+          let skor = 0;
+          if (kunci.length > 0) {
+            Object.keys(data.jawaban).forEach(i => {
+              if (data.jawaban[i] === kunci[i]) skor++;
+            });
+          }
 
-      if (snap.empty) {
-        tbody.innerHTML = `<tr><td colspan="3">❌ Belum ada jawaban untuk kelas & mapel ini.</td></tr>`;
-      }
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${data.nama || "-"}</td>
+            <td>${data.email || "-"}</td>
+            <td>${JSON.stringify(data.jawaban)}</td>
+            <td>${skor}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+      });
     };
   </script>
 </body>
