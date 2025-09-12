@@ -90,7 +90,10 @@
           let poin = 0;
           if (kunci.length > 0 && data.answers) {
             Object.keys(data.answers).forEach(i => {
-              if (data.answers[i] === kunci[i]) poin++;
+            const jawabanSiswa = (data.answers[i] || "").toUpperCase();
+const jawabanBenar = (kunci[i] || "").toUpperCase();
+if (jawabanSiswa === jawabanBenar) poin++;
+              
             });
           }
           const tr = document.createElement("tr");
