@@ -1,2 +1,69 @@
 <!DOCTYPE html>
-<html lang="id"><head><meta charset="utf-8" /><title>CBT - Login</title></head><body><p>Login page same as before</p></body></html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>CBT - Login</title>
+  <style>
+    body{font-family: Arial, sans-serif;background:#f4f6f9;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
+    .card{background:white;padding:24px;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,0.08);width:360px}
+    input{width:100%;padding:10px;margin:8px 0;border-radius:8px;border:1px solid #ccc}
+    button{width:100%;padding:10px;border:none;border-radius:8px;background:#3498db;color:white;cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Masuk CBT</h2>
+    <input id="email" type="email" placeholder="Email" />
+    <input id="password" type="password" placeholder="Password" />
+    <button onclick="login()">Masuk</button>
+    <p id="msg" style="color:red"></p>
+  </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
+    authDomain: "authfirebase-4a2ce.firebaseapp.com",
+    projectId: "authfirebase-4a2ce",
+    storageBucket: "authfirebase-4a2ce.firebasestorage.app",
+    messagingSenderId: "395028121712",
+    appId: "1:395028121712:web:8bf3d5470c13204bef8cb5"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  async function login() {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value.trim();
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      // get role from users collection
+      const userDoc = await getDoc(doc(db, "users", cred.user.uid));
+      const data = userDoc.exists() ? userDoc.data() : null;
+      if (data && data.role === 'guru') {
+        window.location.href = 'guru.html';
+      } else {
+        window.location.href = 'exam.html';
+      }
+    } catch (err) {
+      document.getElementById('msg').innerText = err.message;
+    }
+  }
+
+  onAuthStateChanged(auth, async user => {
+    if (!user) return;
+    try {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      const data = userDoc.exists() ? userDoc.data() : null;
+      if (data && data.role === 'guru') window.location.href = 'guru.html';
+      else window.location.href = 'exam.html';
+    } catch(e){}
+  });
+</script>
+</body>
+</html>

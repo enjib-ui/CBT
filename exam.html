@@ -59,6 +59,7 @@ function logout(){ signOut(auth); window.location.href='index.html'; }
 
 onAuthStateChanged(auth, async user=>{
   if(!user) { window.location.href='index.html'; return; }
+  // get user kelas
   const udoc = await getDoc(doc(db,'users',user.uid));
   if(!udoc.exists()){ document.getElementById('info').innerText='Data user tidak ditemukan'; return; }
   kelas = udoc.data().kelas;
@@ -71,11 +72,6 @@ onAuthStateChanged(auth, async user=>{
   soalData = data.soal || [];
   document.getElementById('info').innerHTML = `<b>Kelas:</b> ${kelas} &nbsp; <b>Mapel:</b> ${data.mapel||'-'}`;
   if(soalData.length===0){ document.getElementById('noSoal').style.display='block'; return; }
-
-  // load previous answers if exist
-  const ansDoc = await getDoc(doc(db,"answers", user.uid+"_"+kelas));
-  if(ansDoc.exists()) answers = ansDoc.data().answers || {};
-
   document.getElementById('questionArea').style.display='block';
   renderQuestion();
   renderNav();
@@ -101,7 +97,6 @@ function selectOption(option){
   buttons.forEach(b=> b.classList.remove('selected'));
   const idx = Array.from(buttons).find(b=> b.innerText.startsWith(option+ '.'));
   if(idx) idx.classList.add('selected');
-  renderNav();
   saveAnswerToFirestore();
 }
 
