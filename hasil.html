@@ -2,12 +2,15 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hasil Ujian</title>
   <style>
     body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
     header { background: #2c3e50; color: white; padding: 15px; text-align: center; }
-    input, button { padding: 10px; margin: 5px 0; border-radius: 6px; border: 1px solid #ccc; }
-    button { cursor: pointer; background: #3498db; color: white; border: none; }
+    select, button {
+      padding: 8px; margin: 5px; border-radius: 6px; border: 1px solid #ccc;
+    }
+    button { background: #3498db; color: white; border: none; cursor: pointer; }
     button:hover { background: #2980b9; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
     th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
@@ -16,13 +19,13 @@
 </head>
 <body>
   <header>
-    <h2>Hasil Ujian</h2>
+    <h2>📊 Hasil Ujian</h2>
   </header>
 
   <div>
     <input type="text" id="kelasInput" placeholder="Kelas (misal: kelas10)">
     <input type="text" id="mapelInput" placeholder="Mapel (misal: matematika)">
-    <button onclick="loadHasil()">📊 Tampilkan Hasil</button>
+    <button onclick="loadHasil()">Tampilkan Hasil</button>
   </div>
 
   <table id="hasilTable">
@@ -30,6 +33,7 @@
       <tr>
         <th>Nama</th>
         <th>Email</th>
+        <th>Kelas</th>
         <th>Jawaban</th>
         <th>Skor</th>
       </tr>
@@ -61,6 +65,7 @@
         return;
       }
 
+      // Ambil kunci jawaban dari soal
       const soalRef = doc(db, "soal", `${kelas}_${mapel}`);
       const soalSnap = await getDoc(soalRef);
       let kunci = [];
@@ -68,26 +73,32 @@
         kunci = soalSnap.data().soal.map(s => s.JawabanBenar || "");
       }
 
-      const colRef = collection(db, "jawaban");
-      const snapshot = await getDocs(colRef);
+      // Ambil semua user
+      const usersSnap = await getDocs(collection(db, "users"));
+      const users = {};
+      usersSnap.forEach(u => { users[u.id] = u.data(); });
+
+      // Ambil jawaban
+      const jawabanSnap = await getDocs(collection(db, "jawaban"));
       const tbody = document.querySelector("#hasilTable tbody");
       tbody.innerHTML = "";
 
-      snapshot.forEach(docSnap => {
+      jawabanSnap.forEach(docSnap => {
         const data = docSnap.data();
-        if (data.kelas === kelas && data.mapel === mapel) {
+        const user = users[docSnap.id];
+        if (user && user.kelas === kelas) {
           let skor = 0;
-          if (kunci.length > 0) {
-            Object.keys(data.jawaban).forEach(i => {
-              if (data.jawaban[i] === kunci[i]) skor++;
+          if (kunci.length > 0 && data.answers) {
+            Object.keys(data.answers).forEach(i => {
+              if (data.answers[i] === kunci[i]) skor++;
             });
           }
-
           const tr = document.createElement("tr");
           tr.innerHTML = `
-            <td>${data.nama || "-"}</td>
-            <td>${data.email || "-"}</td>
-            <td>${JSON.stringify(data.jawaban)}</td>
+            <td>${user.nama || "-"}</td>
+            <td>${user.email || "-"}</td>
+            <td>${user.kelas || "-"}</td>
+            <td>${JSON.stringify(data.answers || {})}</td>
             <td>${skor}</td>
           `;
           tbody.appendChild(tr);
