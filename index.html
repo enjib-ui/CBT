@@ -41,6 +41,7 @@
   const db = getFirestore(app);
 
   async function login(){
+    window.login = login;
     const btn = document.getElementById('btnLogin');
     btn.disabled = true;
     document.getElementById('msg').innerText = '';
