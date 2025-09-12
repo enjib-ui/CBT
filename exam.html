@@ -1,191 +1,166 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8"/>
-  <title>Exam</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exam CBT</title>
   <style>
-    body{font-family:Arial;background:#f4f6f9;margin:0;padding:20px}
-    .top{display:flex;justify-content:space-between;align-items:center}
-    .card{background:white;padding:20px;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,0.06);max-width:900px;margin:20px auto}
-    .question{font-size:18px;margin-bottom:12px}
-    .options button{display:block;width:100%;text-align:left;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer}
-    .options button.selected{background:#dff0ff}
-    #navQ button{margin:4px;padding:8px;border-radius:6px}
-    #submitBtn{margin-top:15px;padding:10px;width:100%;border:none;border-radius:8px;background:#27ae60;color:white;cursor:pointer;font-size:16px;display:none}
-    #submitBtn:disabled{background:#aaa;cursor:not-allowed}
+    body { margin: 0; font-family: Arial, sans-serif; background: #f9f9f9; }
+    header {
+      background: #3498db; color: white; padding: 12px;
+      text-align: center; font-size: 18px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    header button {
+      background: #e74c3c; border: none; padding: 8px 12px;
+      color: white; border-radius: 6px; font-size: 14px;
+    }
+    .container { padding: 15px; }
+    #question {
+      background: white; padding: 15px; border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1); margin-bottom: 15px;
+      font-size: 16px;
+    }
+    #opts button {
+      width: 100%; margin: 5px 0; padding: 12px;
+      border: 1px solid #ccc; border-radius: 8px;
+      text-align: left; background: white; font-size: 15px;
+    }
+    #opts button.selected { background: #dff0ff; border-color: #3498db; }
+    #navQ {
+      display: flex; flex-wrap: wrap; gap: 5px; margin-top: 15px;
+    }
+    #navQ button {
+      flex: 1 0 18%; min-width: 40px; padding: 8px;
+      border-radius: 6px; border: none; background: #3498db;
+      color: white; font-size: 14px;
+    }
+    #navQ button.done { background: #27ae60; }
+    #submitBtn {
+      margin-top: 15px; width: 100%; padding: 12px;
+      background: #27ae60; border: none; border-radius: 8px;
+      color: white; font-size: 16px; display: none;
+    }
+    #submitBtn:disabled { background: #aaa; }
   </style>
 </head>
 <body>
-  <div class="top">
-    <h2>Halaman Ujian</h2>
-    <div><button onclick="doLogout()">Logout</button></div>
+  <header>
+    <span>Ujian CBT</span>
+    <button onclick="logout()">Logout</button>
+  </header>
+  <div class="container">
+    <div id="question"></div>
+    <div id="opts"></div>
+    <div id="navQ"></div>
+    <button id="submitBtn" onclick="submitExam()">Kirim Jawaban</button>
+    <p id="submitMsg" style="color:green;font-weight:bold"></p>
   </div>
 
-  <div id="main" class="card">
-    <div id="info"></div>
-    <div id="questionArea" style="display:none">
-      <div id="qText" class="question"></div>
-      <div class="options" id="opts"></div>
-      <div style="display:flex;justify-content:space-between;margin-top:12px">
-        <button onclick="prevQ()">Sebelumnya</button>
-        <button onclick="nextQ()">Selanjutnya</button>
-      </div>
-      <div id="navQ" style="margin-top:12px"></div>
-      <button id="submitBtn" onclick="submitExam()">Kirim Jawaban</button>
-      <p id="submitMsg" style="color:green;font-weight:bold"></p>
-    </div>
-    <div id="noSoal" style="display:none">Tidak ada soal aktif untuk kelas kamu.</div>
-  </div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-import { getFirestore, doc, getDoc, collection, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    const firebaseConfig = {
+      apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
+      authDomain: "authfirebase-4a2ce.firebaseapp.com",
+      projectId: "authfirebase-4a2ce",
+      storageBucket: "authfirebase-4a2ce.firebasestorage.app",
+      messagingSenderId: "395028121712",
+      appId: "1:395028121712:web:8bf3d5470c13204bef8cb5"
+    };
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
-  authDomain: "authfirebase-4a2ce.firebaseapp.com",
-  projectId: "authfirebase-4a2ce",
-  storageBucket: "authfirebase-4a2ce.firebasestorage.app",
-  messagingSenderId: "395028121712",
-  appId: "1:395028121712:web:8bf3d5470c13204bef8cb5"
-};
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-let soalData = [];
-let answers = {};
-let current = 0;
-let kelas = null;
-let submitted = false;
+    let soalData = [];
+    let current = 0;
+    let answers = {};
+    let submitted = false;
+    let kelasUser = "";
 
-async function doLogout(){
-  try { await signOut(auth); } catch(e){ console.error(e); }
-  window.location.href='index.html';
-}
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) {
+        kelasUser = userDoc.data().kelas;
+        loadSoal();
+      }
+    });
 
-onAuthStateChanged(auth, async user=>{
-  if(!user) { window.location.href='index.html'; return; }
-  const udoc = await getDoc(doc(db,'users',user.uid));
-  if(!udoc.exists()){ document.getElementById('info').innerText='Data user tidak ditemukan'; return; }
-  kelas = udoc.data().kelas;
-  if(!kelas){ document.getElementById('info').innerText='Kamu belum terdaftar ke kelas'; return; }
-
-  const allSoal = await getDocs(collection(db,"soal"));
-  let soalAktif = null;
-  allSoal.forEach(snap=>{
-    if(snap.id.startsWith(kelas+"_")){
-      const s = snap.data();
-      if(s.aktif) soalAktif = s;
+    async function loadSoal() {
+      const soalDoc = await getDoc(doc(db, "soal", kelasUser + "_matematika")); 
+      if (soalDoc.exists() && soalDoc.data().aktif) {
+        soalData = soalDoc.data().soal;
+        renderQuestion();
+        renderNav();
+      } else {
+        document.querySelector(".container").innerHTML = "<p>❌ Tidak ada soal aktif untuk kelas ini.</p>";
+      }
     }
-  });
 
-  if(!soalAktif){ document.getElementById('noSoal').style.display='block'; return; }
-
-  soalData = soalAktif.soal || [];
-  document.getElementById('info').innerHTML = `<b>Kelas:</b> ${kelas} &nbsp; <b>Mapel:</b> ${soalAktif.mapel||'-'}`;
-  if(soalData.length===0){ document.getElementById('noSoal').style.display='block'; return; }
-
-  const ansDoc = await getDoc(doc(db,"answers", user.uid+"_"+kelas));
-  if(ansDoc.exists()){
-    answers = ansDoc.data().answers || {};
-    submitted = ansDoc.data().submitted || false;
-  }
-
-  document.getElementById('questionArea').style.display='block';
-  if(submitted){
-    document.getElementById('submitBtn').style.display="block";
-    document.getElementById('submitBtn').disabled = true;
-    document.getElementById('submitMsg').innerText = "✅ Ujian sudah dikirim.";
-  }
-  renderQuestion();
-  renderNav();
-});
-
-function renderQuestion(){
-  const q = soalData[current];
-  document.getElementById('qText').innerText = (current+1)+'. '+(q.Pertanyaan || q.soal || '');
-  const opts = document.getElementById('opts');
-  opts.innerHTML = '';
-  ['A','B','C','D','E'].forEach(key=>{
-    if(q[key]){
-      const btn = document.createElement('button');
-      btn.innerText = key + '. ' + (q[key]||'');
-      btn.onclick = ()=>{ if(!submitted) selectOption(key); };
-      if(answers[current] === key) btn.classList.add('selected');
-      if(submitted) btn.disabled = true;
-      opts.appendChild(btn);
+    function renderQuestion() {
+      if (soalData.length === 0) return;
+      document.getElementById("question").innerText = soalData[current].Pertanyaan;
+      const optsDiv = document.getElementById("opts");
+      optsDiv.innerHTML = "";
+      ["A","B","C","D","E"].forEach(opt => {
+        const btn = document.createElement("button");
+        btn.innerText = opt + ". " + (soalData[current][opt] || "");
+        if (answers[current] === opt) btn.classList.add("selected");
+        btn.onclick = () => selectOption(opt);
+        optsDiv.appendChild(btn);
+      });
     }
-  });
-}
 
-function selectOption(option){
-  answers[current] = option;
-  const buttons = document.querySelectorAll('#opts button');
-  buttons.forEach(b=> b.classList.remove('selected'));
-  const idx = Array.from(buttons).find(b=> b.innerText.startsWith(option+ '.'));
-  if(idx) idx.classList.add('selected');
-  renderNav();
-  saveAnswerToFirestore();
-  checkAllAnswered();
-}
+    function selectOption(opt) {
+      answers[current] = opt;
+      renderQuestion();
+      renderNav();
+      saveAnswer();
+      checkAllAnswered();
+    }
 
-async function saveAnswerToFirestore(){
-  const user = auth.currentUser;
-  if(!user || submitted) return;
-  try{
-    await setDoc(doc(db,'answers', user.uid + '_' + kelas), { answers }, { merge: true });
-  }catch(e){ console.error('save failed', e); }
-}
+    function renderNav() {
+      const nav = document.getElementById("navQ");
+      nav.innerHTML = "";
+      soalData.forEach((_, i) => {
+        const btn = document.createElement("button");
+        btn.innerText = i+1;
+        if (answers[i]) btn.classList.add("done");
+        btn.onclick = () => { current = i; renderQuestion(); };
+        nav.appendChild(btn);
+      });
+      checkAllAnswered();
+    }
 
-function prevQ(){ if(current>0){ current--; renderQuestion(); } }
-function nextQ(){ if(current < soalData.length-1){ current++; renderQuestion(); } }
+    function checkAllAnswered(){
+      if (Object.keys(answers).length === soalData.length) {
+        document.getElementById("submitBtn").style.display = "block";
+      }
+    }
 
-function renderNav(){
-  const nav = document.getElementById('navQ');
-  nav.innerHTML='';
-  for(let i=0;i<soalData.length;i++){
-    const btn = document.createElement('button');
-    btn.innerText = i+1;
-    btn.onclick = ()=>{ current = i; renderQuestion(); };
-    if(answers[i]) btn.style.background = '#dff0ff';
-    if(submitted) btn.disabled = true;
-    nav.appendChild(btn);
-  }
-  checkAllAnswered();
-}
+    async function saveAnswer(){
+      const user = auth.currentUser;
+      if (!user) return;
+      await setDoc(doc(db, "jawaban", user.uid), { answers }, { merge: true });
+    }
 
-function checkAllAnswered(){
-  if(submitted) return;
-  const total = soalData.length;
-  const answeredCount = Object.keys(answers).length;
-  const btn = document.getElementById('submitBtn');
-  if(answeredCount === total){
-    btn.style.display = "block";
-  } else {
-    btn.style.display = "none";
-  }
-}
+    window.submitExam = async function() {
+      submitted = true;
+      document.getElementById("submitBtn").disabled = true;
+      document.getElementById("submitMsg").innerText = "✅ Jawaban berhasil dikirim!";
+    };
 
-async function submitExam(){
-  const user = auth.currentUser;
-  if(!user || submitted) return;
-  try{
-    await setDoc(doc(db,'answers', user.uid+"_"+kelas), { answers, submitted:true }, { merge:true });
-    submitted = true;
-    document.getElementById('submitBtn').disabled = true;
-    document.getElementById('submitMsg').innerText = "✅ Jawaban sudah dikirim.";
-    renderQuestion();
-    renderNav();
-  }catch(e){ console.error('Submit gagal', e); }
-}
-
-// Expose ke global supaya onclick bisa dipanggil
-window.doLogout = doLogout;
-window.submitExam = submitExam;
-window.prevQ = prevQ;
-window.nextQ = nextQ;
-</script>
+    window.logout = async function() {
+      await signOut(auth);
+      window.location.href = "index.html";
+    };
+  </script>
 </body>
 </html>
