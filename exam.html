@@ -165,6 +165,10 @@ async function submitExam(){
     renderNav();
   }catch(e){ console.error('Submit gagal', e); }
 }
+window.doLogout = doLogout;
+window.submitExam = submitExam;
+window.prevQ = prevQ;
+window.nextQ = nextQ;
 </script>
 </body>
 </html>
