@@ -173,6 +173,56 @@
       await signOut(auth);
       window.location.href = "index.html";
     };
+    // ==========================
+// Anti-Cheat Features
+// ==========================
+
+// 1. Paksa fullscreen saat mulai ujian
+function startFullscreen() {
+  if (document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen();
+  }
+}
+
+// 2. Deteksi keluar fullscreen
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement) {
+    alert("⚠️ Anda keluar dari fullscreen! Harap kembali.");
+    logCheating("Keluar fullscreen");
+  }
+});
+
+// 3. Deteksi pindah tab / minimize
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    alert("⚠️ Anda meninggalkan tab ujian!");
+    logCheating("Pindah tab / minimize");
+  }
+});
+
+// 4. Nonaktifkan klik kanan & copy-paste
+document.addEventListener("contextmenu", e => e.preventDefault());
+document.addEventListener("copy", e => e.preventDefault());
+document.addEventListener("cut", e => e.preventDefault());
+document.addEventListener("paste", e => e.preventDefault());
+
+// 5. Fungsi simpan log ke Firestore
+import { collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+
+async function logCheating(reason) {
+  const user = auth.currentUser;
+  if (!user) return;
+  try {
+    await addDoc(collection(db, "cheatingLogs"), {
+      uid: user.uid,
+      reason,
+      time: new Date()
+    });
+  } catch (e) {
+    console.error("Gagal simpan log:", e);
+  }
+        }
+    
   </script>
 </body>
 </html>
