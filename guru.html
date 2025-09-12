@@ -43,6 +43,7 @@
       <li onclick="showPage('soal')">📚 Kelola Soal</li>
       <li onclick="showPage('siswa')">👩‍🎓 Kelola Siswa</li>
       <li onclick="window.location.href='hasil.html'">📊 Hasil Ujian</li>
+      <li onclick="showPage('logs')">📋 Log Pelanggaran</li>
       <li onclick="logout()">🚪 Logout</li>
     </ul>
   </div>
@@ -90,7 +91,18 @@
         <tbody></tbody>
       </table>
     </section>
+    
+    <section id="logs" class="card" style="display:none;">
+  <h3>Log Pelanggaran</h3>
+  <table id="logsTable">
+    <thead>
+      <tr><th>Email</th><th>Kelas</th><th>Alasan</th><th>Waktu</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+    </section>
   </div>
+  
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
@@ -121,6 +133,8 @@
       document.getElementById(page).style.display = "block";
       if(page === 'soal') loadSoal();
       if(page === 'siswa') loadSiswa();
+      if (page === 'logs') loadLogs();
+      
     };
 
     // ====== Kelola Soal ======
@@ -192,6 +206,31 @@
         }
       });
     }
+    async function loadLogs() {
+  const tbody = document.querySelector("#logsTable tbody");
+  tbody.innerHTML = "";
+  const snapshot = await getDocs(collection(db, "cheatingLogs"));
+  for (const log of snapshot.docs) {
+    const data = log.data();
+    let email = data.uid;
+    let kelas = "-";
+
+    // Ambil info user dari koleksi users
+    const userDoc = await getDoc(doc(db, "users", data.uid));
+    if (userDoc.exists()) {
+      email = userDoc.data().email;
+      kelas = userDoc.data().kelas;
+    }
+
+    tbody.innerHTML += `<tr>
+      <td>${email}</td>
+      <td>${kelas}</td>
+      <td>${data.reason}</td>
+      <td>${new Date(data.time.seconds * 1000).toLocaleString()}</td>
+    </tr>`;
+  }
+    }
+    
 
     // ====== Upload Siswa via Excel ======
     window.uploadSiswaExcel = function() {
