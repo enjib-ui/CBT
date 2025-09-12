@@ -40,9 +40,7 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  async function login()
-    window.login = login;
-  {
+  async function login(){
     const btn = document.getElementById('btnLogin');
     btn.disabled = true;
     document.getElementById('msg').innerText = '';
@@ -63,6 +61,7 @@
       document.getElementById('msg').innerText = err.message;
     } finally { btn.disabled = false; }
   }
+  window.login = login;
 
   onAuthStateChanged(auth, async user => {
     if(!user) return;
