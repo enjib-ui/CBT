@@ -15,9 +15,7 @@
       padding: 12px; cursor: pointer; border-radius: 6px; margin-bottom: 8px;
     }
     .sidebar ul li:hover { background: #34495e; }
-    .content {
-      margin-left: 240px; padding: 20px;
-    }
+    .content { margin-left: 240px; padding: 20px; }
     .card {
       background: white; padding: 20px; border-radius: 12px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1); margin-bottom: 20px;
@@ -49,6 +47,7 @@
   </div>
 
   <div class="content">
+    <!-- Upload Soal -->
     <section id="upload" class="card">
       <h3>Upload Soal</h3>
       <input type="file" id="fileInput" />
@@ -57,6 +56,7 @@
       <button onclick="uploadSoal()">Upload</button>
     </section>
 
+    <!-- Kelola Soal -->
     <section id="soal" class="card" style="display:none;">
       <h3>Daftar Soal</h3>
       <table id="soalTable">
@@ -67,6 +67,7 @@
       </table>
     </section>
 
+    <!-- Kelola Siswa -->
     <section id="siswa" class="card" style="display:none;">
       <h3>Tambah Siswa</h3>
       <input type="text" id="namaSiswa" placeholder="Nama Siswa" />
@@ -74,6 +75,11 @@
       <input type="password" id="passwordSiswa" placeholder="Password" />
       <input type="text" id="kelasSiswa" placeholder="Kelas (misal: kelas10)" />
       <button onclick="tambahSiswa()">Tambah</button>
+
+      <h3>Upload Siswa via Excel</h3>
+      <input type="file" id="fileSiswa" />
+      <button onclick="uploadSiswaExcel()">Upload Excel</button>
+      <p style="font-size:13px;color:#555;">Format kolom: <b>Nama</b>, <b>Email</b>, <b>Password</b>, <b>Kelas</b></p>
 
       <h3>Daftar Siswa</h3>
       <table id="siswaTable">
@@ -127,8 +133,8 @@
           <td>${docSnap.id}</td>
           <td>${data.aktif ? "Aktif" : "Nonaktif"}</td>
           <td>
-            ${data.aktif 
-              ? `<button class="secondary" onclick="nonaktifkanSoal('${docSnap.id}')">Nonaktifkan</button>` 
+            ${data.aktif
+              ? `<button class="secondary" onclick="nonaktifkanSoal('${docSnap.id}')">Nonaktifkan</button>`
               : `<button onclick="aktifkanSoal('${docSnap.id}')">Aktifkan</button>`}
             <button class="danger" onclick="hapusSoal('${docSnap.id}')">Hapus</button>
           </td>
@@ -185,6 +191,43 @@
         }
       });
     }
+
+    // ====== Upload Siswa via Excel ======
+    window.uploadSiswaExcel = function() {
+      const fileInput = document.getElementById("fileSiswa");
+      if (!fileInput.files[0]) {
+        alert("⚠️ Pilih file Excel siswa terlebih dahulu!");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+
+        let success = 0, failed = 0;
+        for (const row of rows) {
+          const nama = row.Nama || "";
+          const email = row.Email || "";
+          const password = row.Password || "123456";
+          const kelas = row.Kelas || "";
+          if (!nama || !email || !kelas) { failed++; continue; }
+
+          try {
+            const userCred = await createUserWithEmailAndPassword(auth, email, password);
+            await setDoc(doc(db, "users", userCred.user.uid), { nama, email, kelas, role: "siswa" });
+            success++;
+          } catch (err) {
+            console.error("Gagal tambah siswa:", err.message);
+            failed++;
+          }
+        }
+        alert(`✅ ${success} siswa berhasil ditambahkan, ❌ ${failed} gagal`);
+        loadSiswa();
+      };
+      reader.readAsArrayBuffer(fileInput.files[0]);
+    };
 
     // ====== Upload Soal ======
     window.uploadSoal = function() {
