@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <title>Guru Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     body{margin:0;font-family:Arial;background:#f4f6f9}
     .sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:#2c3e50;color:#fff;padding:20px}
@@ -12,7 +13,7 @@
     .sidebar li:hover{background:#34495e}
     .content{margin-left:240px;padding:20px}
     .card{background:#fff;padding:18px;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,0.06);margin-bottom:16px}
-    input,button,select{padding:8px;border-radius:8px;border:1px solid #ccc;margin-top:6px}
+    input,button,select{padding:8px;border-radius:8px;border:1px solid #ccc;margin-top:6px;width:100%;box-sizing:border-box}
     button{background:#3498db;color:#fff;border:none;cursor:pointer}
     table{width:100%;border-collapse:collapse;margin-top:12px}
     th,td{border:1px solid #eee;padding:10px;text-align:center}
@@ -31,7 +32,7 @@
   </div>
   <div class="content">
     <section id="upload" class="card">
-      <h3>Upload Soal (Simpan per Kelas)</h3>
+      <h3>Upload Soal (per Kelas)</h3>
       <input type="file" id="fileInput" accept=".xlsx,.xls" /><br/>
       <input id="kelasInput" placeholder="Kelas (misal: kelas10)" /><br/>
       <input id="mapelInput" placeholder="Mapel (misal: matematika)" /><br/>
@@ -58,116 +59,114 @@
   </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-import { getAuth, signOut, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
-import * as XLSX from "https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+  import { getAuth, signOut, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+  import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+  import * as XLSX from "https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
-  authDomain: "authfirebase-4a2ce.firebaseapp.com",
-  projectId: "authfirebase-4a2ce",
-  storageBucket: "authfirebase-4a2ce.firebasestorage.app",
-  messagingSenderId: "395028121712",
-  appId: "1:395028121712:web:8bf3d5470c13204bef8cb5"
-};
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-function show(id){
-  document.querySelectorAll('.content section').forEach(s=>s.style.display='none');
-  document.getElementById(id).style.display='block';
-  if(id==='soal') loadSoal();
-  if(id==='siswa') loadSiswa();
-}
-
-window.logout = async ()=>{
-  await signOut(auth);
-  window.location.href='index.html';
-};
-
-onAuthStateChanged(auth, user=>{
-  if(!user) window.location.href='index.html';
-});
-
-async function uploadSoal(){
-  const fileInput = document.getElementById('fileInput');
-  const kelas = document.getElementById('kelasInput').value.trim();
-  const mapel = document.getElementById('mapelInput').value.trim();
-  const aktif = document.getElementById('setAktif').checked;
-  if(!fileInput.files[0] || !kelas || !mapel){ alert('Lengkapi file, kelas, mapel'); return; }
-  const reader = new FileReader();
-  reader.onload = async (e)=>{
-    const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, {type:'array'});
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(sheet);
-    const soalArr = rows.map(r=>({ Pertanyaan: r.Pertanyaan||r.soal||'', A:r.A||'', B:r.B||'', C:r.C||'', D:r.D||'', E:r.E||'', JawabanBenar:r.JawabanBenar||r.kunci||'' }));
-    try{
-      // save under document id = kelas. Store mapel & soal & aktif
-      await setDoc(doc(db, 'soal', kelas), { mapel, soal: soalArr, aktif });
-      alert('✅ Soal tersimpan untuk kelas '+kelas);
-      loadSoal();
-    }catch(err){ alert('Gagal upload: '+err.message); }
+  const firebaseConfig = {
+    apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
+    authDomain: "authfirebase-4a2ce.firebaseapp.com",
+    projectId: "authfirebase-4a2ce",
+    storageBucket: "authfirebase-4a2ce.firebasestorage.app",
+    messagingSenderId: "395028121712",
+    appId: "1:395028121712:web:8bf3d5470c13204bef8cb5"
   };
-  reader.readAsArrayBuffer(fileInput.files[0]);
-}
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-async function loadSoal(){
-  const tbody = document.querySelector('#soalTable tbody');
-  tbody.innerHTML = '';
-  const snapshot = await getDocs(collection(db,'soal'));
-  snapshot.forEach(snap=>{
-    const d = snap.data();
-    const row = `<tr>
-      <td>${snap.id}</td>
-      <td>${d.mapel||''}</td>
-      <td>${d.aktif? 'Aktif':'Nonaktif'}</td>
-      <td>
-        ${d.aktif? `<button onclick="setAktif('${snap.id}',false)">Nonaktifkan</button>` : `<button onclick="setAktif('${snap.id}',true)">Aktifkan</button>`}
-        <button onclick="hapusSoal('${snap.id}')">Hapus</button>
-      </td>
-    </tr>`;
-    tbody.innerHTML += row;
+  function show(id){
+    document.querySelectorAll('.content section').forEach(s=>s.style.display='none');
+    document.getElementById(id).style.display='block';
+    if(id==='soal') loadSoal();
+    if(id==='siswa') loadSiswa();
+  }
+
+  window.logout = async ()=>{
+    await signOut(auth);
+    window.location.href='index.html';
+  };
+
+  onAuthStateChanged(auth, user=>{
+    if(!user) window.location.href='index.html';
   });
-}
 
-window.setAktif = async (kelas, val)=>{
-  await setDoc(doc(db,'soal',kelas), { aktif: val }, { merge: true });
-  loadSoal();
-};
+  async function uploadSoal(){
+    const fileInput = document.getElementById('fileInput');
+    const kelas = document.getElementById('kelasInput').value.trim();
+    const mapel = document.getElementById('mapelInput').value.trim();
+    const aktif = document.getElementById('setAktif').checked;
+    if(!fileInput.files[0] || !kelas || !mapel){ alert('Lengkapi file, kelas, mapel'); return; }
+    const reader = new FileReader();
+    reader.onload = async (e)=>{
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, {type:'array'});
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet);
+      const soalArr = rows.map((r, i)=>({ id: i+1, Pertanyaan: r.Pertanyaan||r.soal||'', A:r.A||'', B:r.B||'', C:r.C||'', D:r.D||'', E:r.E||'', JawabanBenar:r.JawabanBenar||r.kunci||'' }));
+      try{
+        await setDoc(doc(db, 'soal', kelas), { mapel, soal: soalArr, aktif });
+        alert('✅ Soal tersimpan untuk kelas '+kelas);
+        loadSoal();
+      }catch(err){ alert('Gagal upload: '+err.message); }
+    };
+    reader.readAsArrayBuffer(fileInput.files[0]);
+  }
 
-window.hapusSoal = async (kelas)=>{
-  if(!confirm('Hapus soal untuk '+kelas+'?')) return;
-  await deleteDoc(doc(db,'soal',kelas));
-  loadSoal();
-};
+  async function loadSoal(){
+    const tbody = document.querySelector('#soalTable tbody');
+    tbody.innerHTML = '';
+    const snapshot = await getDocs(collection(db,'soal'));
+    snapshot.forEach(snap=>{
+      const d = snap.data();
+      const row = `<tr>
+        <td>${snap.id}</td>
+        <td>${d.mapel||''}</td>
+        <td>${d.aktif? 'Aktif':'Nonaktif'}</td>
+        <td>
+          ${d.aktif? `<button onclick="setAktif('${snap.id}',false)">Nonaktifkan</button>` : `<button onclick="setAktif('${snap.id}',true)">Aktifkan</button>`}
+          <button onclick="hapusSoal('${snap.id}')">Hapus</button>
+        </td>
+      </tr>`;
+      tbody.innerHTML += row;
+    });
+  }
 
-window.tambahSiswa = async ()=>{
-  const nama = document.getElementById('namaSiswa').value.trim();
-  const email = document.getElementById('emailSiswa').value.trim();
-  const pass = document.getElementById('passwordSiswa').value.trim();
-  const kelas = document.getElementById('kelasSiswa').value.trim();
-  if(!nama||!email||!pass||!kelas){ alert('Lengkapi data siswa'); return; }
-  try{
-    const userCred = await createUserWithEmailAndPassword(auth, email, pass);
-    await setDoc(doc(db,'users', userCred.user.uid), { nama, email, kelas, role:'siswa' });
-    alert('✅ Siswa ditambahkan');
-    loadSiswa();
-  }catch(err){ alert('Gagal tambah siswa: '+err.message); }
-};
+  window.setAktif = async (kelas, val)=>{
+    await setDoc(doc(db,'soal',kelas), { aktif: val }, { merge: true });
+    loadSoal();
+  };
 
-async function loadSiswa(){
-  const tbody = document.querySelector('#siswaTable tbody');
-  tbody.innerHTML='';
-  const snapshot = await getDocs(collection(db,'users'));
-  snapshot.forEach(snap=>{
-    const d = snap.data();
-    if(d.role==='siswa') tbody.innerHTML += `<tr><td>${d.nama}</td><td>${d.email}</td><td>${d.kelas}</td></tr>`;
-  });
-}
+  window.hapusSoal = async (kelas)=>{
+    if(!confirm('Hapus soal untuk '+kelas+'?')) return;
+    await deleteDoc(doc(db,'soal',kelas));
+    loadSoal();
+  };
 
+  window.tambahSiswa = async ()=>{
+    const nama = document.getElementById('namaSiswa').value.trim();
+    const email = document.getElementById('emailSiswa').value.trim();
+    const pass = document.getElementById('passwordSiswa').value.trim();
+    const kelas = document.getElementById('kelasSiswa').value.trim();
+    if(!nama||!email||!pass||!kelas){ alert('Lengkapi data siswa'); return; }
+    try{
+      const userCred = await createUserWithEmailAndPassword(auth, email, pass);
+      await setDoc(doc(db,'users', userCred.user.uid), { nama, email, kelas, role:'siswa' });
+      alert('✅ Siswa ditambahkan');
+      loadSiswa();
+    }catch(err){ alert('Gagal tambah siswa: '+err.message); }
+  };
+
+  async function loadSiswa(){
+    const tbody = document.querySelector('#siswaTable tbody');
+    tbody.innerHTML='';
+    const snapshot = await getDocs(collection(db,'users'));
+    snapshot.forEach(snap=>{
+      const d = snap.data();
+      if(d.role==='siswa') tbody.innerHTML += `<tr><td>${d.nama}</td><td>${d.email}</td><td>${d.kelas}</td></tr>`;
+    });
+  }
 </script>
 </body>
 </html>

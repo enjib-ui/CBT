@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <title>Exam</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     body{font-family:Arial;background:#f4f6f9;margin:0;padding:20px}
     .top{display:flex;justify-content:space-between;align-items:center}
@@ -11,6 +12,7 @@
     .options button{display:block;width:100%;text-align:left;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer}
     .options button.selected{background:#dff0ff}
     #navQ button{margin:4px;padding:8px;border-radius:6px}
+    .meta{color:#555;margin-bottom:10px}
   </style>
 </head>
 <body>
@@ -20,7 +22,7 @@
   </div>
 
   <div id="main" class="card">
-    <div id="info"></div>
+    <div id="info" class="meta"></div>
     <div id="questionArea" style="display:none">
       <div id="qText" class="question"></div>
       <div class="options" id="opts"></div>
@@ -34,95 +36,107 @@
   </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+  import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
-  authDomain: "authfirebase-4a2ce.firebaseapp.com",
-  projectId: "authfirebase-4a2ce",
-  storageBucket: "authfirebase-4a2ce.firebasestorage.app",
-  messagingSenderId: "395028121712",
-  appId: "1:395028121712:web:8bf3d5470c13204bef8cb5"
-};
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+  const firebaseConfig = {
+    apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
+    authDomain: "authfirebase-4a2ce.firebaseapp.com",
+    projectId: "authfirebase-4a2ce",
+    storageBucket: "authfirebase-4a2ce.firebasestorage.app",
+    messagingSenderId: "395028121712",
+    appId: "1:395028121712:web:8bf3d5470c13204bef8cb5"
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-let soalData = [];
-let answers = {}; // {index: 'A'}
-let current = 0;
-let kelas = null;
+  let soalData = [];
+  let answers = {}; // {index: 'A'}
+  let current = 0;
+  let kelas = null;
 
-function logout(){ signOut(auth); window.location.href='index.html'; }
+  function logout(){ signOut(auth); window.location.href='index.html'; }
 
-onAuthStateChanged(auth, async user=>{
-  if(!user) { window.location.href='index.html'; return; }
-  // get user kelas
-  const udoc = await getDoc(doc(db,'users',user.uid));
-  if(!udoc.exists()){ document.getElementById('info').innerText='Data user tidak ditemukan'; return; }
-  kelas = udoc.data().kelas;
-  if(!kelas){ document.getElementById('info').innerText='Kamu belum terdaftar ke kelas'; return; }
-  // get soal for kelas
-  const sdoc = await getDoc(doc(db,'soal',kelas));
-  if(!sdoc.exists() || !sdoc.data().soal){ document.getElementById('noSoal').style.display='block'; return; }
-  const data = sdoc.data();
-  if(!data.aktif){ document.getElementById('noSoal').style.display='block'; return; }
-  soalData = data.soal || [];
-  document.getElementById('info').innerHTML = `<b>Kelas:</b> ${kelas} &nbsp; <b>Mapel:</b> ${data.mapel||'-'}`;
-  if(soalData.length===0){ document.getElementById('noSoal').style.display='block'; return; }
-  document.getElementById('questionArea').style.display='block';
-  renderQuestion();
-  renderNav();
-});
+  onAuthStateChanged(auth, async user=>{
+    if(!user) { window.location.href='index.html'; return; }
+    const udoc = await getDoc(doc(db,'users',user.uid));
+    if(!udoc.exists()){ document.getElementById('info').innerText='Data user tidak ditemukan'; return; }
+    kelas = udoc.data().kelas;
+    if(!kelas){ document.getElementById('info').innerText='Kamu belum terdaftar ke kelas'; return; }
+    const sdoc = await getDoc(doc(db,'soal',kelas));
+    if(!sdoc.exists() || !sdoc.data().soal){ document.getElementById('noSoal').style.display='block'; return; }
+    const data = sdoc.data();
+    if(!data.aktif){ document.getElementById('noSoal').style.display='block'; return; }
+    soalData = data.soal || [];
+    document.getElementById('info').innerHTML = `<b>Kelas:</b> ${kelas} &nbsp; <b>Mapel:</b> ${data.mapel||'-'}`;
+    if(soalData.length===0){ document.getElementById('noSoal').style.display='block'; return; }
 
-function renderQuestion(){
-  const q = soalData[current];
-  document.getElementById('qText').innerText = (current+1)+'. '+(q.Pertanyaan || q.soal || '');
-  const opts = document.getElementById('opts');
-  opts.innerHTML = '';
-  ['A','B','C','D','E'].forEach(key=>{
-    const btn = document.createElement('button');
-    btn.innerText = key + '. ' + (q[key]||'');
-    btn.onclick = ()=>{ selectOption(key); };
-    if(answers[current] === key) btn.classList.add('selected');
-    opts.appendChild(btn);
+    // -> Load previous answers if any (autosave restore)
+    const ansDoc = await getDoc(doc(db, 'answers', user.uid + '_' + kelas));
+    if(ansDoc.exists()){
+      const payload = ansDoc.data();
+      if(payload.answers) answers = payload.answers;
+    }
+
+    document.getElementById('questionArea').style.display='block';
+    renderQuestion();
+    renderNav();
   });
-}
 
-function selectOption(option){
-  answers[current] = option;
-  const buttons = document.querySelectorAll('#opts button');
-  buttons.forEach(b=> b.classList.remove('selected'));
-  const idx = Array.from(buttons).find(b=> b.innerText.startsWith(option+ '.'));
-  if(idx) idx.classList.add('selected');
-  saveAnswerToFirestore();
-}
-
-async function saveAnswerToFirestore(){
-  const user = auth.currentUser;
-  if(!user) return;
-  try{
-    await setDoc(doc(db,'answers', user.uid + '_' + kelas), { answers }, { merge: true });
-  }catch(e){ console.error('save failed', e); }
-}
-
-function prevQ(){ if(current>0){ current--; renderQuestion(); } }
-function nextQ(){ if(current < soalData.length-1){ current++; renderQuestion(); } }
-
-function renderNav(){
-  const nav = document.getElementById('navQ');
-  nav.innerHTML='';
-  for(let i=0;i<soalData.length;i++){
-    const btn = document.createElement('button');
-    btn.innerText = i+1;
-    btn.onclick = ()=>{ current = i; renderQuestion(); };
-    if(answers[i]) btn.style.background = '#dff0ff';
-    nav.appendChild(btn);
+  function renderQuestion(){
+    const q = soalData[current];
+    document.getElementById('qText').innerText = (current+1)+'. '+(q.Pertanyaan || q.soal || '');
+    const opts = document.getElementById('opts');
+    opts.innerHTML = '';
+    ['A','B','C','D','E'].forEach(key=>{
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.innerText = key + '. ' + (q[key]||'');
+      btn.onclick = ()=>{ selectOption(key); };
+      if(answers && answers[current] === key) btn.classList.add('selected');
+      opts.appendChild(btn);
+    });
   }
-}
 
+  function selectOption(option){
+    answers[current] = option;
+    // update UI selection
+    const buttons = document.querySelectorAll('#opts button');
+    buttons.forEach(b=> b.classList.remove('selected'));
+    const idx = Array.from(buttons).find(b=> b.innerText.startsWith(option + '.'));
+    if(idx) idx.classList.add('selected');
+    renderNav();
+    saveAnswerToFirestore();
+  }
+
+  async function saveAnswerToFirestore(){
+    const user = auth.currentUser;
+    if(!user) return;
+    try{
+      await setDoc(doc(db, 'answers', user.uid + '_' + kelas), { answers }, { merge: true });
+      // optional: can show small "tersimpan" indicator (omitted to keep UI simple)
+    }catch(e){
+      console.error('save failed', e);
+    }
+  }
+
+  function prevQ(){ if(current>0){ current--; renderQuestion(); } }
+  function nextQ(){ if(current < soalData.length-1){ current++; renderQuestion(); } }
+
+  function renderNav(){
+    const nav = document.getElementById('navQ');
+    nav.innerHTML='';
+    for(let i=0;i<soalData.length;i++){
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.innerText = i+1;
+      btn.onclick = ()=>{ current = i; renderQuestion(); };
+      if(answers && answers[i]) btn.style.background = '#dff0ff';
+      nav.appendChild(btn);
+    }
+  }
 </script>
 </body>
 </html>
