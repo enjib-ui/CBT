@@ -11,12 +11,14 @@
     .options button{display:block;width:100%;text-align:left;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer}
     .options button.selected{background:#dff0ff}
     #navQ button{margin:4px;padding:8px;border-radius:6px}
+    #submitBtn{margin-top:15px;padding:10px;width:100%;border:none;border-radius:8px;background:#27ae60;color:white;cursor:pointer;font-size:16px}
+    #submitBtn:disabled{background:#aaa;cursor:not-allowed}
   </style>
 </head>
 <body>
   <div class="top">
     <h2>Halaman Ujian</h2>
-    <div><button onclick="logout()">Logout</button></div>
+    <div><button onclick="doLogout()">Logout</button></div>
   </div>
 
   <div id="main" class="card">
@@ -29,6 +31,8 @@
         <button onclick="nextQ()">Selanjutnya</button>
       </div>
       <div id="navQ" style="margin-top:12px"></div>
+      <button id="submitBtn" onclick="submitExam()">Kirim Jawaban</button>
+      <p id="submitMsg" style="color:green;font-weight:bold"></p>
     </div>
     <div id="noSoal" style="display:none">Tidak ada soal aktif untuk kelas kamu.</div>
   </div>
@@ -51,11 +55,15 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 let soalData = [];
-let answers = {}; // {index: 'A'}
+let answers = {};
 let current = 0;
 let kelas = null;
+let submitted = false;
 
-function logout(){ signOut(auth); window.location.href='index.html'; }
+async function doLogout(){
+  try { await signOut(auth); } catch(e){ console.error(e); }
+  window.location.href='index.html';
+}
 
 onAuthStateChanged(auth, async user=>{
   if(!user) { window.location.href='index.html'; return; }
@@ -64,7 +72,6 @@ onAuthStateChanged(auth, async user=>{
   kelas = udoc.data().kelas;
   if(!kelas){ document.getElementById('info').innerText='Kamu belum terdaftar ke kelas'; return; }
 
-  // cari soal aktif untuk kelas
   const allSoal = await getDocs(collection(db,"soal"));
   let soalAktif = null;
   allSoal.forEach(snap=>{
@@ -80,11 +87,17 @@ onAuthStateChanged(auth, async user=>{
   document.getElementById('info').innerHTML = `<b>Kelas:</b> ${kelas} &nbsp; <b>Mapel:</b> ${soalAktif.mapel||'-'}`;
   if(soalData.length===0){ document.getElementById('noSoal').style.display='block'; return; }
 
-  // load previous answers if exist
   const ansDoc = await getDoc(doc(db,"answers", user.uid+"_"+kelas));
-  if(ansDoc.exists()) answers = ansDoc.data().answers || {};
+  if(ansDoc.exists()){
+    answers = ansDoc.data().answers || {};
+    submitted = ansDoc.data().submitted || false;
+  }
 
   document.getElementById('questionArea').style.display='block';
+  if(submitted){
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('submitMsg').innerText = "✅ Ujian sudah dikirim.";
+  }
   renderQuestion();
   renderNav();
 });
@@ -98,8 +111,9 @@ function renderQuestion(){
     if(q[key]){
       const btn = document.createElement('button');
       btn.innerText = key + '. ' + (q[key]||'');
-      btn.onclick = ()=>{ selectOption(key); };
+      btn.onclick = ()=>{ if(!submitted) selectOption(key); };
       if(answers[current] === key) btn.classList.add('selected');
+      if(submitted) btn.disabled = true;
       opts.appendChild(btn);
     }
   });
@@ -117,7 +131,7 @@ function selectOption(option){
 
 async function saveAnswerToFirestore(){
   const user = auth.currentUser;
-  if(!user) return;
+  if(!user || submitted) return;
   try{
     await setDoc(doc(db,'answers', user.uid + '_' + kelas), { answers }, { merge: true });
   }catch(e){ console.error('save failed', e); }
@@ -134,8 +148,22 @@ function renderNav(){
     btn.innerText = i+1;
     btn.onclick = ()=>{ current = i; renderQuestion(); };
     if(answers[i]) btn.style.background = '#dff0ff';
+    if(submitted) btn.disabled = true;
     nav.appendChild(btn);
   }
+}
+
+async function submitExam(){
+  const user = auth.currentUser;
+  if(!user || submitted) return;
+  try{
+    await setDoc(doc(db,'answers', user.uid+"_"+kelas), { answers, submitted:true }, { merge:true });
+    submitted = true;
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('submitMsg').innerText = "✅ Jawaban sudah dikirim.";
+    renderQuestion();
+    renderNav();
+  }catch(e){ console.error('Submit gagal', e); }
 }
 </script>
 </body>
