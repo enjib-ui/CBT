@@ -8,8 +8,8 @@
     body { margin: 0; font-family: Arial, sans-serif; background: #f9f9f9; }
     header {
       background: #3498db; color: white; padding: 12px;
-      text-align: center; font-size: 18px;
       display: flex; justify-content: space-between; align-items: center;
+      font-size: 18px;
     }
     header button {
       background: #e74c3c; border: none; padding: 8px 12px;
@@ -60,7 +60,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
@@ -81,6 +81,7 @@
     let submitted = false;
     let kelasUser = "";
 
+    // ✅ Cek login siswa
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
         window.location.href = "index.html";
@@ -93,14 +94,25 @@
       }
     });
 
+    // ✅ Ambil soal aktif berdasarkan kelas
     async function loadSoal() {
-      const soalDoc = await getDoc(doc(db, "soal", kelasUser + "_matematika")); 
-      if (soalDoc.exists() && soalDoc.data().aktif) {
-        soalData = soalDoc.data().soal;
+      const snapshot = await getDocs(collection(db, "soal"));
+      let soalFound = null;
+
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.aktif && docSnap.id.startsWith(kelasUser)) {
+          soalFound = data;
+        }
+      });
+
+      if (soalFound) {
+        soalData = soalFound.soal;
         renderQuestion();
         renderNav();
       } else {
-        document.querySelector(".container").innerHTML = "<p>❌ Tidak ada soal aktif untuk kelas ini.</p>";
+        document.querySelector(".container").innerHTML =
+          "<p>❌ Tidak ada soal aktif untuk kelas ini.</p>";
       }
     }
 
