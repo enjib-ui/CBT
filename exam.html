@@ -115,29 +115,34 @@
     };
 
     onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const userRef = doc(db, "users", user.uid);
-        const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+  const data = userSnap.data();
 
-        if (userSnap.exists()) {
-          const data = userSnap.data();
+  if (!data.kelas) {
+    document.getElementById("examArea").innerHTML =
+      "<p>⚠️ Data kelas belum diatur oleh guru. Hubungi guru.</p>";
+    return;
+  }
 
-          if (!data.kelas || !data.mapel) {
-            document.getElementById("examArea").innerHTML =
-              "<p>⚠️ Data kelas/mapel belum diatur oleh guru. Hubungi guru.</p>";
-            return;
-          }
+  // Ambil soal berdasarkan kelas
+  const qSnap = await getDocs(collection(db, "soal"));
+  let soalAktif = null;
+  qSnap.forEach(docSnap => {
+    if (docSnap.id.startsWith(data.kelas + "_")) {
+      const s = docSnap.data();
+      if (s.aktif) soalAktif = s;
+    }
+  });
 
-          const soalRef = doc(db, "soal", `${data.kelas}_${data.mapel}`);
-          const soalSnap = await getDoc(soalRef);
+  if (soalAktif) {
+    soal = soalAktif.soal;
+    renderSoal();
+  } else {
+    document.getElementById("examArea").innerHTML =
+      "<p>❌ Belum ada ujian aktif untuk kelas ini</p>";
+  }
+}
 
-          if (soalSnap.exists() && soalSnap.data().aktif) {
-            soal = soalSnap.data().soal;
-            renderSoal();
-          } else {
-            document.getElementById("examArea").innerHTML =
-              "<p>❌ Belum ada ujian aktif untuk kelas ini</p>";
-          }
         } else {
           // fallback: buat data minimal kalau user login tapi belum ada di Firestore
           await setDoc(userRef, {
