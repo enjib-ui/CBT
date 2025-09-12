@@ -11,7 +11,7 @@
     .options button{display:block;width:100%;text-align:left;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer}
     .options button.selected{background:#dff0ff}
     #navQ button{margin:4px;padding:8px;border-radius:6px}
-    #submitBtn{margin-top:15px;padding:10px;width:100%;border:none;border-radius:8px;background:#27ae60;color:white;cursor:pointer;font-size:16px}
+    #submitBtn{margin-top:15px;padding:10px;width:100%;border:none;border-radius:8px;background:#27ae60;color:white;cursor:pointer;font-size:16px;display:none}
     #submitBtn:disabled{background:#aaa;cursor:not-allowed}
   </style>
 </head>
@@ -95,6 +95,7 @@ onAuthStateChanged(auth, async user=>{
 
   document.getElementById('questionArea').style.display='block';
   if(submitted){
+    document.getElementById('submitBtn').style.display="block";
     document.getElementById('submitBtn').disabled = true;
     document.getElementById('submitMsg').innerText = "✅ Ujian sudah dikirim.";
   }
@@ -127,6 +128,7 @@ function selectOption(option){
   if(idx) idx.classList.add('selected');
   renderNav();
   saveAnswerToFirestore();
+  checkAllAnswered();
 }
 
 async function saveAnswerToFirestore(){
@@ -151,6 +153,19 @@ function renderNav(){
     if(submitted) btn.disabled = true;
     nav.appendChild(btn);
   }
+  checkAllAnswered();
+}
+
+function checkAllAnswered(){
+  if(submitted) return;
+  const total = soalData.length;
+  const answeredCount = Object.keys(answers).length;
+  const btn = document.getElementById('submitBtn');
+  if(answeredCount === total){
+    btn.style.display = "block";
+  } else {
+    btn.style.display = "none";
+  }
 }
 
 async function submitExam(){
@@ -165,6 +180,8 @@ async function submitExam(){
     renderNav();
   }catch(e){ console.error('Submit gagal', e); }
 }
+
+// Expose ke global supaya onclick bisa dipanggil
 window.doLogout = doLogout;
 window.submitExam = submitExam;
 window.prevQ = prevQ;
