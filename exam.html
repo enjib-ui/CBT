@@ -1,163 +1,142 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Exam CBT</title>
+  <meta charset="utf-8"/>
+  <title>Exam</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 0; }
-    header { background: #3498db; color: white; padding: 15px; text-align: center; }
-    .container { display: flex; min-height: 100vh; }
-    .sidebar { width: 200px; background: #ecf0f1; padding: 15px; border-right: 1px solid #ccc; }
-    .sidebar h3 { margin-top: 0; }
-    .sidebar button { display: block; width: 100%; padding: 10px; margin: 5px 0; border: none; border-radius: 6px; background: #bdc3c7; cursor: pointer; }
-    .sidebar button.active { background: #3498db; color: white; }
-    .content { flex: 1; padding: 20px; }
-    .question-box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-    .options label { display: block; margin: 8px 0; padding: 8px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; }
-    .options input { margin-right: 10px; }
-    .nav-btns { margin-top: 15px; }
-    .nav-btns button { padding: 10px 15px; margin-right: 10px; border: none; border-radius: 6px; background: #3498db; color: white; cursor: pointer; }
-    .nav-btns button:hover { background: #2980b9; }
+    body{font-family:Arial;background:#f4f6f9;margin:0;padding:20px}
+    .top{display:flex;justify-content:space-between;align-items:center}
+    .card{background:white;padding:20px;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,0.06);max-width:900px;margin:20px auto}
+    .question{font-size:18px;margin-bottom:12px}
+    .options button{display:block;width:100%;text-align:left;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer}
+    .options button.selected{background:#dff0ff}
+    #navQ button{margin:4px;padding:8px;border-radius:6px}
   </style>
 </head>
 <body>
-  <header>
-    <h2>Ujian Online CBT</h2>
-    <button onclick="logout()" style="float:right; margin-top:-40px; background:#e74c3c;">Logout</button>
-  </header>
-
-  <div class="container">
-    <div class="sidebar">
-      <h3>Nomor Soal</h3>
-      <div id="navSoal"></div>
-    </div>
-    <div class="content">
-      <div id="examArea" class="question-box">
-        <p>🔄 Memuat soal...</p>
-      </div>
-      <div class="nav-btns">
-        <button onclick="prevSoal()">⬅️ Sebelumnya</button>
-        <button onclick="nextSoal()">➡️ Selanjutnya</button>
-      </div>
-    </div>
+  <div class="top">
+    <h2>Halaman Ujian</h2>
+    <div><button onclick="logout()">Logout</button></div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+  <div id="main" class="card">
+    <div id="info"></div>
+    <div id="questionArea" style="display:none">
+      <div id="qText" class="question"></div>
+      <div class="options" id="opts"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:12px">
+        <button onclick="prevQ()">Sebelumnya</button>
+        <button onclick="nextQ()">Selanjutnya</button>
+      </div>
+      <div id="navQ" style="margin-top:12px"></div>
+    </div>
+    <div id="noSoal" style="display:none">Tidak ada soal aktif untuk kelas kamu.</div>
+  </div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
-      authDomain: "authfirebase-4a2ce.firebaseapp.com",
-      projectId: "authfirebase-4a2ce",
-      storageBucket: "authfirebase-4a2ce.firebasestorage.app",
-      messagingSenderId: "395028121712",
-      appId: "1:395028121712:web:8bf3d5470c13204bef8cb5"
-    };
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+import { getFirestore, doc, getDoc, collection, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+const firebaseConfig = {
+  apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
+  authDomain: "authfirebase-4a2ce.firebaseapp.com",
+  projectId: "authfirebase-4a2ce",
+  storageBucket: "authfirebase-4a2ce.firebasestorage.app",
+  messagingSenderId: "395028121712",
+  appId: "1:395028121712:web:8bf3d5470c13204bef8cb5"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-    let soal = [];
-    let currentIndex = 0;
-    let jawaban = {};
+let soalData = [];
+let answers = {}; // {index: 'A'}
+let current = 0;
+let kelas = null;
 
-    window.logout = async function() {
-      await signOut(auth);
-      window.location.href = "index.html";
-    };
+function logout(){ signOut(auth); window.location.href='index.html'; }
 
-    function renderNomorSoal() {
-      const nav = document.getElementById("navSoal");
-      nav.innerHTML = "";
-      soal.forEach((s, i) => {
-        const btn = document.createElement("button");
-        btn.textContent = i+1;
-        if (i === currentIndex) btn.classList.add("active");
-        btn.onclick = () => { saveJawaban(); currentIndex = i; renderSoal(); };
-        nav.appendChild(btn);
-      });
-    }
+onAuthStateChanged(auth, async user=>{
+  if(!user) { window.location.href='index.html'; return; }
+  const udoc = await getDoc(doc(db,'users',user.uid));
+  if(!udoc.exists()){ document.getElementById('info').innerText='Data user tidak ditemukan'; return; }
+  kelas = udoc.data().kelas;
+  if(!kelas){ document.getElementById('info').innerText='Kamu belum terdaftar ke kelas'; return; }
 
-    function renderSoal() {
-      if (soal.length === 0) {
-        document.getElementById("examArea").innerHTML = "<p>❌ Belum ada ujian aktif untuk kelas ini</p>";
-        return;
-      }
-      const q = soal[currentIndex];
-      const soalText = q.Pertanyaan || q.pertanyaan || q.soal || "Soal tidak ditemukan";
-      let html = `<h3>Soal ${currentIndex+1}</h3><p>${soalText}</p><div class="options">`;
-      ["A","B","C","D","E"].forEach(opt => {
-        if (q[opt]) {
-          const checked = jawaban[currentIndex] === opt ? "checked" : "";
-          html += `<label><input type="radio" name="opsi" value="${opt}" ${checked}> ${opt}. ${q[opt]}</label>`;
-        }
-      });
-      html += "</div>";
-      document.getElementById("examArea").innerHTML = html;
-      renderNomorSoal();
-    }
-
-    function saveJawaban() {
-      const pilihan = document.querySelector("input[name='opsi']:checked");
-      if (pilihan) jawaban[currentIndex] = pilihan.value;
-    }
-
-    window.nextSoal = function() {
-      saveJawaban();
-      if (currentIndex < soal.length-1) { currentIndex++; renderSoal(); }
-    };
-    window.prevSoal = function() {
-      saveJawaban();
-      if (currentIndex > 0) { currentIndex--; renderSoal(); }
-    };
-
-    onAuthStateChanged(auth, async (user) => {
-      if (userSnap.exists()) {
-  const data = userSnap.data();
-
-  if (!data.kelas) {
-    document.getElementById("examArea").innerHTML =
-      "<p>⚠️ Data kelas belum diatur oleh guru. Hubungi guru.</p>";
-    return;
-  }
-
-  // Ambil soal berdasarkan kelas
-  const qSnap = await getDocs(collection(db, "soal"));
+  // cari soal aktif untuk kelas
+  const allSoal = await getDocs(collection(db,"soal"));
   let soalAktif = null;
-  qSnap.forEach(docSnap => {
-    if (docSnap.id.startsWith(data.kelas + "_")) {
-      const s = docSnap.data();
-      if (s.aktif) soalAktif = s;
+  allSoal.forEach(snap=>{
+    if(snap.id.startsWith(kelas+"_")){
+      const s = snap.data();
+      if(s.aktif) soalAktif = s;
     }
   });
 
-  if (soalAktif) {
-    soal = soalAktif.soal;
-    renderSoal();
-  } else {
-    document.getElementById("examArea").innerHTML =
-      "<p>❌ Belum ada ujian aktif untuk kelas ini</p>";
-  }
+  if(!soalAktif){ document.getElementById('noSoal').style.display='block'; return; }
+
+  soalData = soalAktif.soal || [];
+  document.getElementById('info').innerHTML = `<b>Kelas:</b> ${kelas} &nbsp; <b>Mapel:</b> ${soalAktif.mapel||'-'}`;
+  if(soalData.length===0){ document.getElementById('noSoal').style.display='block'; return; }
+
+  // load previous answers if exist
+  const ansDoc = await getDoc(doc(db,"answers", user.uid+"_"+kelas));
+  if(ansDoc.exists()) answers = ansDoc.data().answers || {};
+
+  document.getElementById('questionArea').style.display='block';
+  renderQuestion();
+  renderNav();
+});
+
+function renderQuestion(){
+  const q = soalData[current];
+  document.getElementById('qText').innerText = (current+1)+'. '+(q.Pertanyaan || q.soal || '');
+  const opts = document.getElementById('opts');
+  opts.innerHTML = '';
+  ['A','B','C','D','E'].forEach(key=>{
+    if(q[key]){
+      const btn = document.createElement('button');
+      btn.innerText = key + '. ' + (q[key]||'');
+      btn.onclick = ()=>{ selectOption(key); };
+      if(answers[current] === key) btn.classList.add('selected');
+      opts.appendChild(btn);
+    }
+  });
 }
 
-        } else {
-          // fallback: buat data minimal kalau user login tapi belum ada di Firestore
-          await setDoc(userRef, {
-            nama: user.email,
-            email: user.email,
-            kelas: "",
-            mapel: ""
-          });
-          document.getElementById("examArea").innerHTML =
-            "<p>⚠️ Akun berhasil login, tapi data siswa belum diatur. Hubungi guru.</p>";
-        }
-      } else {
-        window.location.href = "index.html";
-      }
-    });
-  </script>
+function selectOption(option){
+  answers[current] = option;
+  const buttons = document.querySelectorAll('#opts button');
+  buttons.forEach(b=> b.classList.remove('selected'));
+  const idx = Array.from(buttons).find(b=> b.innerText.startsWith(option+ '.'));
+  if(idx) idx.classList.add('selected');
+  renderNav();
+  saveAnswerToFirestore();
+}
+
+async function saveAnswerToFirestore(){
+  const user = auth.currentUser;
+  if(!user) return;
+  try{
+    await setDoc(doc(db,'answers', user.uid + '_' + kelas), { answers }, { merge: true });
+  }catch(e){ console.error('save failed', e); }
+}
+
+function prevQ(){ if(current>0){ current--; renderQuestion(); } }
+function nextQ(){ if(current < soalData.length-1){ current++; renderQuestion(); } }
+
+function renderNav(){
+  const nav = document.getElementById('navQ');
+  nav.innerHTML='';
+  for(let i=0;i<soalData.length;i++){
+    const btn = document.createElement('button');
+    btn.innerText = i+1;
+    btn.onclick = ()=>{ current = i; renderQuestion(); };
+    if(answers[i]) btn.style.background = '#dff0ff';
+    nav.appendChild(btn);
+  }
+}
+</script>
 </body>
 </html>
