@@ -7,7 +7,7 @@
   <style>
     body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
     header { background: #2c3e50; color: white; padding: 15px; text-align: center; }
-    select, button {
+    input, button {
       padding: 8px; margin: 5px; border-radius: 6px; border: 1px solid #ccc;
     }
     button { background: #3498db; color: white; border: none; cursor: pointer; }
@@ -35,7 +35,7 @@
         <th>Email</th>
         <th>Kelas</th>
         <th>Jawaban</th>
-        <th>Skor</th>
+        <th>Poin</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -65,7 +65,7 @@
         return;
       }
 
-      // Ambil kunci jawaban dari soal
+      // 🔑 Ambil kunci jawaban
       const soalRef = doc(db, "soal", `${kelas}_${mapel}`);
       const soalSnap = await getDoc(soalRef);
       let kunci = [];
@@ -73,12 +73,12 @@
         kunci = soalSnap.data().soal.map(s => s.JawabanBenar || "");
       }
 
-      // Ambil semua user
+      // Ambil semua users
       const usersSnap = await getDocs(collection(db, "users"));
       const users = {};
       usersSnap.forEach(u => { users[u.id] = u.data(); });
 
-      // Ambil jawaban
+      // Ambil jawaban siswa
       const jawabanSnap = await getDocs(collection(db, "jawaban"));
       const tbody = document.querySelector("#hasilTable tbody");
       tbody.innerHTML = "";
@@ -87,10 +87,10 @@
         const data = docSnap.data();
         const user = users[docSnap.id];
         if (user && user.kelas === kelas) {
-          let skor = 0;
+          let poin = 0;
           if (kunci.length > 0 && data.answers) {
             Object.keys(data.answers).forEach(i => {
-              if (data.answers[i] === kunci[i]) skor++;
+              if (data.answers[i] === kunci[i]) poin++;
             });
           }
           const tr = document.createElement("tr");
@@ -99,7 +99,7 @@
             <td>${user.email || "-"}</td>
             <td>${user.kelas || "-"}</td>
             <td>${JSON.stringify(data.answers || {})}</td>
-            <td>${skor}</td>
+            <td>${poin}</td>
           `;
           tbody.appendChild(tr);
         }
