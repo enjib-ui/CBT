@@ -16,6 +16,10 @@
       color: white; border-radius: 6px; font-size: 14px;
     }
     .container { padding: 15px; }
+    #timer {
+      font-size: 18px; font-weight: bold; color: #e74c3c;
+      text-align: center; margin-bottom: 15px;
+    }
     #question {
       background: white; padding: 15px; border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1); margin-bottom: 15px;
@@ -42,13 +46,6 @@
       color: white; font-size: 16px; display: none;
     }
     #submitBtn:disabled { background: #aaa; }
-    #startExam {
-      text-align: center; margin-top: 30px;
-    }
-    #startExam button {
-      padding: 12px 20px; font-size: 16px;
-      background: #27ae60; color: white; border: none; border-radius: 8px;
-    }
   </style>
 </head>
 <body>
@@ -57,25 +54,19 @@
     <button onclick="logout()">Logout</button>
   </header>
   <div class="container">
-    <!-- Tombol mulai ujian -->
-    <div id="startExam" style="display:none;">
-      <button onclick="beginExam()">▶️ Mulai Ujian</button>
-    </div>
-
-    <div id="question" style="display:none;"></div>
-    <div id="opts" style="display:none;"></div>
-    <div id="navQ" style="display:none;"></div>
+    <div id="timer">⏳ Memuat timer...</div>
+    <div id="question"></div>
+    <div id="opts"></div>
+    <div id="navQ"></div>
     <button id="submitBtn" onclick="submitExam()">Kirim Jawaban</button>
     <p id="submitMsg" style="color:green;font-weight:bold"></p>
   </div>
 
   <script type="module">
-    // 🔹 Import Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
-    // 🔹 Konfigurasi Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
       authDomain: "authfirebase-4a2ce.firebaseapp.com",
@@ -93,6 +84,8 @@
     let current = 0;
     let answers = {};
     let kelasUser = "";
+    let waktuSelesai = null;
+    let timerInterval = null;
 
     // ✅ Cek login siswa
     onAuthStateChanged(auth, async (user) => {
@@ -121,23 +114,32 @@
 
       if (soalFound) {
         soalData = soalFound.soal;
-        document.getElementById("startExam").style.display = "block"; // tampilkan tombol
+        const jamMulai = soalFound.jamMulai; // format "HH:MM"
+        const durasi = soalFound.durasi; // menit
+
+        if (!jamMulai || !durasi) {
+          document.querySelector(".container").innerHTML = "<p>❌ Jadwal ujian belum diatur oleh guru.</p>";
+          return;
+        }
+
+        // Hitung waktu selesai
+        const [h, m] = jamMulai.split(":").map(Number);
+        const mulai = new Date();
+        mulai.setHours(h, m, 0, 0);
+        waktuSelesai = new Date(mulai.getTime() + durasi * 60000);
+
+        if (Date.now() < mulai.getTime()) {
+          document.querySelector(".container").innerHTML = "<p>⏳ Ujian belum dimulai. Harap tunggu jam mulai.</p>";
+          return;
+        }
+
+        renderQuestion();
+        renderNav();
+        startTimer();
       } else {
-        document.querySelector(".container").innerHTML =
-          "<p>❌ Tidak ada soal aktif untuk kelas ini.</p>";
+        document.querySelector(".container").innerHTML = "<p>❌ Tidak ada soal aktif untuk kelas ini.</p>";
       }
     }
-
-    // ✅ Fungsi mulai ujian
-    window.beginExam = function() {
-      startFullscreen();   // aktifkan fullscreen
-      document.getElementById("startExam").style.display = "none"; // sembunyikan tombol
-      document.getElementById("question").style.display = "block";
-      document.getElementById("opts").style.display = "block";
-      document.getElementById("navQ").style.display = "flex";
-      renderQuestion();
-      renderNav();
-    };
 
     function renderQuestion() {
       if (soalData.length === 0) return;
@@ -196,53 +198,30 @@
       window.location.href = "index.html";
     };
 
-    // ==========================
-    // 🔹 Anti-Cheat Features
-    // ==========================
-
-    // Paksa fullscreen
-    function startFullscreen() {
-      if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen();
-      }
+    // ✅ Timer ujian
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        const now = new Date();
+        const sisa = waktuSelesai - now;
+        if (sisa <= 0) {
+          clearInterval(timerInterval);
+          document.getElementById("timer").innerText = "⏰ Waktu habis!";
+          autoSubmitAndLogout();
+        } else {
+          const menit = Math.floor((sisa / 1000 / 60) % 60);
+          const jam = Math.floor(sisa / 1000 / 60 / 60);
+          const detik = Math.floor((sisa / 1000) % 60);
+          document.getElementById("timer").innerText = `⏳ Sisa waktu: ${jam}j ${menit}m ${detik}d`;
+        }
+      }, 1000);
     }
 
-    // Deteksi keluar fullscreen
-    document.addEventListener("fullscreenchange", () => {
-      if (!document.fullscreenElement) {
-        alert("⚠️ Anda keluar dari fullscreen!");
-        logCheating("Keluar fullscreen");
-      }
-    });
-
-    // Deteksi pindah tab / minimize
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) {
-        alert("⚠️ Anda meninggalkan tab ujian!");
-        logCheating("Pindah tab / minimize");
-      }
-    });
-
-    // Nonaktifkan klik kanan & copy-paste
-    document.addEventListener("contextmenu", e => e.preventDefault());
-    document.addEventListener("copy", e => e.preventDefault());
-    document.addEventListener("cut", e => e.preventDefault());
-    document.addEventListener("paste", e => e.preventDefault());
-
-    // Simpan log ke Firestore
-    async function logCheating(reason) {
-      const user = auth.currentUser;
-      if (!user) return;
-      try {
-        await addDoc(collection(db, "cheatingLogs"), {
-          uid: user.uid,
-          reason,
-          time: new Date()
-        });
-      } catch (e) {
-        console.error("Gagal simpan log:", e);
-      }
+    async function autoSubmitAndLogout() {
+      await saveAnswer();
+      alert("⏰ Waktu ujian habis. Jawaban Anda disimpan.");
+      logout();
     }
   </script>
 </body>
-</html>
+  </html>
+  
