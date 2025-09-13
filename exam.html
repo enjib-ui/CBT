@@ -15,11 +15,8 @@
       background: #e74c3c; border: none; padding: 8px 12px;
       color: white; border-radius: 6px; font-size: 14px;
     }
+    #timer { font-size: 16px; font-weight: bold; }
     .container { padding: 15px; }
-    #timer {
-      font-size: 18px; font-weight: bold; color: #e74c3c;
-      text-align: center; margin-bottom: 15px;
-    }
     #question {
       background: white; padding: 15px; border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1); margin-bottom: 15px;
@@ -51,10 +48,10 @@
 <body>
   <header>
     <span>Ujian CBT</span>
+    <span id="timer">00:00:00</span>
     <button onclick="logout()">Logout</button>
   </header>
   <div class="container">
-    <div id="timer">⏳ Memuat timer...</div>
     <div id="question"></div>
     <div id="opts"></div>
     <div id="navQ"></div>
@@ -84,10 +81,10 @@
     let current = 0;
     let answers = {};
     let kelasUser = "";
-    let waktuSelesai = null;
+    let endTime = null;
     let timerInterval = null;
 
-    // ✅ Cek login siswa
+    // === Cek login siswa ===
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
         window.location.href = "index.html";
@@ -100,11 +97,10 @@
       }
     });
 
-    // ✅ Ambil soal aktif berdasarkan kelas
+    // === Ambil soal aktif berdasarkan kelas ===
     async function loadSoal() {
       const snapshot = await getDocs(collection(db, "soal"));
       let soalFound = null;
-
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
         if (data.aktif && docSnap.id.startsWith(kelasUser)) {
@@ -114,33 +110,42 @@
 
       if (soalFound) {
         soalData = soalFound.soal;
-        const jamMulai = soalFound.jamMulai; // format "HH:MM"
-        const durasi = soalFound.durasi; // menit
-
-        if (!jamMulai || !durasi) {
-          document.querySelector(".container").innerHTML = "<p>❌ Jadwal ujian belum diatur oleh guru.</p>";
-          return;
-        }
-
-        // Hitung waktu selesai
-        const [h, m] = jamMulai.split(":").map(Number);
-        const mulai = new Date();
-        mulai.setHours(h, m, 0, 0);
-        waktuSelesai = new Date(mulai.getTime() + durasi * 60000);
-
-        if (Date.now() < mulai.getTime()) {
-          document.querySelector(".container").innerHTML = "<p>⏳ Ujian belum dimulai. Harap tunggu jam mulai.</p>";
-          return;
-        }
-
+        setupTimer(soalFound.jamMulai, soalFound.durasi);
         renderQuestion();
         renderNav();
-        startTimer();
       } else {
         document.querySelector(".container").innerHTML = "<p>❌ Tidak ada soal aktif untuk kelas ini.</p>";
       }
     }
 
+    // === Setup Timer ===
+    function setupTimer(jamMulai, durasi) {
+      const [h, m] = jamMulai.split(":").map(Number);
+      const start = new Date();
+      start.setHours(h, m, 0, 0);
+      endTime = new Date(start.getTime() + durasi * 60000);
+
+      timerInterval = setInterval(updateTimer, 1000);
+      updateTimer();
+    }
+
+    function updateTimer() {
+      const now = new Date();
+      const diff = endTime - now;
+      if (diff <= 0) {
+        clearInterval(timerInterval);
+        document.getElementById("timer").innerText = "00:00:00";
+        submitExam(true);
+        return;
+      }
+      const hrs = Math.floor(diff / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+      document.getElementById("timer").innerText =
+        `${String(hrs).padStart(2,"0")}:${String(mins).padStart(2,"0")}:${String(secs).padStart(2,"0")}`;
+    }
+
+    // === Render Soal ===
     function renderQuestion() {
       if (soalData.length === 0) return;
       document.getElementById("question").innerText = soalData[current].Pertanyaan;
@@ -188,40 +193,25 @@
       await setDoc(doc(db, "jawaban", user.uid), { answers }, { merge: true });
     }
 
-    window.submitExam = async function() {
+    // === Submit Jawaban ===
+    window.submitExam = async function(auto=false) {
+      const user = auth.currentUser;
+      if (!user) return;
+      await setDoc(doc(db, "jawaban", user.uid), { answers, selesai: true }, { merge: true });
+
       document.getElementById("submitBtn").disabled = true;
-      document.getElementById("submitMsg").innerText = "✅ Jawaban berhasil dikirim!";
+      document.getElementById("submitMsg").innerText = auto
+        ? "⏰ Waktu habis! Jawaban otomatis terkirim."
+        : "✅ Jawaban berhasil dikirim!";
+
+      setTimeout(() => logout(), 3000);
     };
 
+    // === Logout ===
     window.logout = async function() {
       await signOut(auth);
       window.location.href = "index.html";
     };
-
-    // ✅ Timer ujian
-    function startTimer() {
-      timerInterval = setInterval(() => {
-        const now = new Date();
-        const sisa = waktuSelesai - now;
-        if (sisa <= 0) {
-          clearInterval(timerInterval);
-          document.getElementById("timer").innerText = "⏰ Waktu habis!";
-          autoSubmitAndLogout();
-        } else {
-          const menit = Math.floor((sisa / 1000 / 60) % 60);
-          const jam = Math.floor(sisa / 1000 / 60 / 60);
-          const detik = Math.floor((sisa / 1000) % 60);
-          document.getElementById("timer").innerText = `⏳ Sisa waktu: ${jam}j ${menit}m ${detik}d`;
-        }
-      }, 1000);
-    }
-
-    async function autoSubmitAndLogout() {
-      await saveAnswer();
-      alert("⏰ Waktu ujian habis. Jawaban Anda disimpan.");
-      logout();
-    }
   </script>
 </body>
-  </html>
-  
+</html>
