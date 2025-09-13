@@ -42,6 +42,13 @@
       color: white; font-size: 16px; display: none;
     }
     #submitBtn:disabled { background: #aaa; }
+    #startExam {
+      text-align: center; margin-top: 30px;
+    }
+    #startExam button {
+      padding: 12px 20px; font-size: 16px;
+      background: #27ae60; color: white; border: none; border-radius: 8px;
+    }
   </style>
 </head>
 <body>
@@ -50,9 +57,14 @@
     <button onclick="logout()">Logout</button>
   </header>
   <div class="container">
-    <div id="question"></div>
-    <div id="opts"></div>
-    <div id="navQ"></div>
+    <!-- Tombol mulai ujian -->
+    <div id="startExam" style="display:none;">
+      <button onclick="beginExam()">▶️ Mulai Ujian</button>
+    </div>
+
+    <div id="question" style="display:none;"></div>
+    <div id="opts" style="display:none;"></div>
+    <div id="navQ" style="display:none;"></div>
     <button id="submitBtn" onclick="submitExam()">Kirim Jawaban</button>
     <p id="submitMsg" style="color:green;font-weight:bold"></p>
   </div>
@@ -109,14 +121,23 @@
 
       if (soalFound) {
         soalData = soalFound.soal;
-        renderQuestion();
-        renderNav();
-        startFullscreen(); // ✅ mulai fullscreen
+        document.getElementById("startExam").style.display = "block"; // tampilkan tombol
       } else {
         document.querySelector(".container").innerHTML =
           "<p>❌ Tidak ada soal aktif untuk kelas ini.</p>";
       }
     }
+
+    // ✅ Fungsi mulai ujian
+    window.beginExam = function() {
+      startFullscreen();   // aktifkan fullscreen
+      document.getElementById("startExam").style.display = "none"; // sembunyikan tombol
+      document.getElementById("question").style.display = "block";
+      document.getElementById("opts").style.display = "block";
+      document.getElementById("navQ").style.display = "flex";
+      renderQuestion();
+      renderNav();
+    };
 
     function renderQuestion() {
       if (soalData.length === 0) return;
