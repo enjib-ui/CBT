@@ -25,7 +25,7 @@
     </div>
     <table>
       <thead>
-        <tr><th>Email</th><th>Kelas</th><th>Alasan</th><th>Waktu</th></tr>
+        <tr><th>Nama</th><th>Kelas</th><th>Alasan</th><th>Waktu</th></tr>
       </thead>
       <tbody id="logsTable"></tbody>
     </table>
@@ -77,16 +77,16 @@
 
         for (const log of snapshot.docs) {
           const data = log.data();
-          let email = data.uid, kelas = "-";
+          let nama = data.uid, kelas = "-";
 
           // Ambil user dari cache (supaya cepat)
           if (usersCache[data.uid]) {
-            email = usersCache[data.uid].email;
+            nama = usersCache[data.uid].nama || usersCache[data.uid].email;
             kelas = usersCache[data.uid].kelas;
           } else {
             const userDoc = await getDoc(doc(db, "users", data.uid));
             if (userDoc.exists()) {
-              email = userDoc.data().email;
+              nama = userDoc.data().nama || userDoc.data().email;
               kelas = userDoc.data().kelas;
               usersCache[data.uid] = userDoc.data();
             }
@@ -97,7 +97,7 @@
               new Date(data.time.seconds * 1000).toLocaleString() : "-";
             logsTable.innerHTML += `
               <tr>
-                <td>${email}</td>
+                <td>${nama}</td>
                 <td>${kelas}</td>
                 <td>${data.reason}</td>
                 <td>${waktu}</td>
