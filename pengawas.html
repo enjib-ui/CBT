@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log Pelanggaran - Pengawas</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
+    h2 { text-align: center; color: #2c3e50; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background: #3498db; color: white; }
+    tr:nth-child(even) { background: #f9f9f9; }
+    .info { text-align:center; margin-top:10px; font-size:13px; color:#555; }
+  </style>
+</head>
+<body>
+  <h2>📋 Log Pelanggaran Hari Ini</h2>
+  <p class="info">Halaman ini otomatis memperbarui log realtime.</p>
+  <table id="logsTable">
+    <thead>
+      <tr><th>Email</th><th>Kelas</th><th>Alasan</th><th>Waktu</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, doc, getDoc } 
+      from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
+      authDomain: "authfirebase-4a2ce.firebaseapp.com",
+      projectId: "authfirebase-4a2ce",
+      storageBucket: "authfirebase-4a2ce.firebasestorage.app",
+      messagingSenderId: "395028121712",
+      appId: "1:395028121712:web:8bf3d5470c13204bef8cb5"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const tbody = document.querySelector("#logsTable tbody");
+    const today = new Date().toISOString().split("T")[0];
+
+    // 🔄 Dengarkan perubahan realtime pada cheatingLogs
+    onSnapshot(collection(db, "cheatingLogs"), async (snapshot) => {
+      tbody.innerHTML = "";
+      for (const log of snapshot.docs) {
+        const data = log.data();
+        let email = data.uid;
+        let kelas = "-";
+
+        // Ambil info user dari koleksi users
+        try {
+          const userDoc = await getDoc(doc(db, "users", data.uid));
+          if (userDoc.exists()) {
+            email = userDoc.data().email;
+            kelas = userDoc.data().kelas;
+          }
+        } catch {}
+
+        // Konversi waktu
+        let waktu = new Date();
+        if (data.time?.seconds) waktu = new Date(data.time.seconds * 1000);
+        else if (data.time) waktu = new Date(data.time);
+
+        const tanggalLog = waktu.toISOString().split("T")[0];
+        if (tanggalLog === today) {
+          tbody.innerHTML += `<tr>
+            <td>${email}</td>
+            <td>${kelas}</td>
+            <td>${data.reason}</td>
+            <td>${waktu.toLocaleTimeString()}</td>
+          </tr>`;
+        }
+      }
+    });
+  </script>
+</body>
+</html>
