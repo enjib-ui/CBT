@@ -43,6 +43,11 @@
       color: white; font-size: 16px; display: none;
     }
     #submitBtn:disabled { background: #aaa; }
+    #startBtn {
+      margin: 50px auto; display: block; padding: 15px 25px;
+      font-size: 18px; background: #3498db; color: white;
+      border: none; border-radius: 8px; cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -52,11 +57,14 @@
     <button onclick="logout()">Logout</button>
   </header>
   <div class="container">
-    <div id="question"></div>
-    <div id="opts"></div>
-    <div id="navQ"></div>
-    <button id="submitBtn" onclick="submitExam()">Kirim Jawaban</button>
-    <p id="submitMsg" style="color:green;font-weight:bold"></p>
+    <button id="startBtn" onclick="startExam()">Mulai Ujian</button>
+    <div id="examContent" style="display:none;">
+      <div id="question"></div>
+      <div id="opts"></div>
+      <div id="navQ"></div>
+      <button id="submitBtn" onclick="submitExam()">Kirim Jawaban</button>
+      <p id="submitMsg" style="color:green;font-weight:bold"></p>
+    </div>
   </div>
 
   <script type="module">
@@ -83,9 +91,9 @@
     let kelasUser = "";
     let timerInterval;
 
-    // =====================
+    let soalFound = null;
+
     // Cek login siswa
-    // =====================
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
         window.location.href = "index.html";
@@ -94,40 +102,37 @@
       const userDoc = await getDoc(doc(db, "users", user.uid));
       if (userDoc.exists()) {
         kelasUser = userDoc.data().kelas;
-        loadSoal();
+        await getSoal();
       }
     });
 
-    // =====================
     // Ambil soal aktif
-    // =====================
-    async function loadSoal() {
+    async function getSoal() {
       const snapshot = await getDocs(collection(db, "soal"));
-      let soalFound = null, soalId = null;
-
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
         if (data.aktif && docSnap.id.startsWith(kelasUser)) {
           soalFound = data;
-          soalId = docSnap.id;
         }
       });
-
-      if (soalFound) {
-        soalData = soalFound.soal;
-        startTimer(soalFound.jamMulai, soalFound.durasi);
-        renderQuestion();
-        renderNav();
-        startFullscreen(); // Paksa fullscreen saat mulai ujian
-      } else {
-        document.querySelector(".container").innerHTML =
-          "<p>❌ Tidak ada soal aktif untuk kelas ini.</p>";
-      }
     }
 
-    // =====================
+    // Mulai ujian
+    window.startExam = function() {
+      if (!soalFound) {
+        alert("❌ Tidak ada soal aktif untuk kelas Anda.");
+        return;
+      }
+      document.getElementById("startBtn").style.display = "none";
+      document.getElementById("examContent").style.display = "block";
+      soalData = soalFound.soal;
+      startTimer(soalFound.jamMulai, soalFound.durasi);
+      renderQuestion();
+      renderNav();
+      startFullscreen();
+    };
+
     // Timer
-    // =====================
     function startTimer(startTime, duration) {
       const [jam, menit] = startTime.split(":").map(Number);
       const mulai = new Date();
@@ -153,9 +158,7 @@
       }, 1000);
     }
 
-    // =====================
     // Render soal
-    // =====================
     function renderQuestion() {
       if (soalData.length === 0) return;
       document.getElementById("question").innerText = soalData[current].Pertanyaan;
@@ -215,13 +218,12 @@
       window.location.href = "index.html";
     };
 
-    // =====================
     // Anti-cheat
-    // =====================
     function startFullscreen() {
-      if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen();
-      }
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) elem.requestFullscreen();
+      else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+      else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
     }
 
     document.addEventListener("fullscreenchange", () => {
