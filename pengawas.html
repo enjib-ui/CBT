@@ -5,29 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Log Pelanggaran - Pengawas</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
-    h2 { text-align: center; color: #2c3e50; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-    th { background: #3498db; color: white; }
-    tr:nth-child(even) { background: #f9f9f9; }
-    .info { text-align:center; margin-top:10px; font-size:13px; color:#555; }
+    body { font-family: Arial, sans-serif; background:#f4f6f9; margin:0; padding:20px; }
+    h2 { text-align:center; }
+    .card { background:white; padding:20px; border-radius:12px;
+            box-shadow:0 2px 6px rgba(0,0,0,0.1); margin-bottom:20px; }
+    label { font-weight:bold; }
+    select { padding:6px; margin-left:8px; }
+    table { width:100%; border-collapse:collapse; margin-top:15px; }
+    th, td { border:1px solid #ddd; padding:8px; text-align:center; }
+    th { background:#3498db; color:white; }
   </style>
 </head>
 <body>
-  <h2>📋 Log Pelanggaran Hari Ini</h2>
-  <p class="info">Halaman ini otomatis memperbarui log realtime.</p>
-  <table id="logsTable">
-    <thead>
-      <tr><th>Email</th><th>Kelas</th><th>Alasan</th><th>Waktu</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div class="card">
+    <h2>📋 Log Pelanggaran Ujian</h2>
+    <div>
+      <label for="kelasFilter">Filter Kelas:</label>
+      <select id="kelasFilter"></select>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Email</th><th>Kelas</th><th>Alasan</th><th>Waktu</th></tr>
+      </thead>
+      <tbody id="logsTable"></tbody>
+    </table>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, doc, getDoc } 
-      from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
@@ -41,42 +47,71 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const tbody = document.querySelector("#logsTable tbody");
-    const today = new Date().toISOString().split("T")[0];
+    const kelasFilter = document.getElementById("kelasFilter");
+    const logsTable = document.getElementById("logsTable");
 
-    // 🔄 Dengarkan perubahan realtime pada cheatingLogs
-    onSnapshot(collection(db, "cheatingLogs"), async (snapshot) => {
-      tbody.innerHTML = "";
-      for (const log of snapshot.docs) {
-        const data = log.data();
-        let email = data.uid;
-        let kelas = "-";
+    let usersCache = {};
 
-        // Ambil info user dari koleksi users
-        try {
-          const userDoc = await getDoc(doc(db, "users", data.uid));
-          if (userDoc.exists()) {
-            email = userDoc.data().email;
-            kelas = userDoc.data().kelas;
-          }
-        } catch {}
-
-        // Konversi waktu
-        let waktu = new Date();
-        if (data.time?.seconds) waktu = new Date(data.time.seconds * 1000);
-        else if (data.time) waktu = new Date(data.time);
-
-        const tanggalLog = waktu.toISOString().split("T")[0];
-        if (tanggalLog === today) {
-          tbody.innerHTML += `<tr>
-            <td>${email}</td>
-            <td>${kelas}</td>
-            <td>${data.reason}</td>
-            <td>${waktu.toLocaleTimeString()}</td>
-          </tr>`;
+    // 🔄 Ambil daftar kelas dari koleksi users
+    async function loadKelasFilter() {
+      const snapshot = await getDocs(collection(db, "users"));
+      const kelasSet = new Set();
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.kelas) {
+          kelasSet.add(data.kelas);
+          usersCache[docSnap.id] = data;
         }
-      }
-    });
+      });
+      kelasFilter.innerHTML = `<option value="">Semua</option>`;
+      kelasSet.forEach(k => {
+        kelasFilter.innerHTML += `<option value="${k}">${k}</option>`;
+      });
+    }
+
+    // 🔄 Tampilkan log realtime
+    function loadLogsRealtime() {
+      onSnapshot(collection(db, "cheatingLogs"), async (snapshot) => {
+        logsTable.innerHTML = "";
+        const filterKelas = kelasFilter.value;
+
+        for (const log of snapshot.docs) {
+          const data = log.data();
+          let email = data.uid, kelas = "-";
+
+          // Ambil user dari cache (supaya cepat)
+          if (usersCache[data.uid]) {
+            email = usersCache[data.uid].email;
+            kelas = usersCache[data.uid].kelas;
+          } else {
+            const userDoc = await getDoc(doc(db, "users", data.uid));
+            if (userDoc.exists()) {
+              email = userDoc.data().email;
+              kelas = userDoc.data().kelas;
+              usersCache[data.uid] = userDoc.data();
+            }
+          }
+
+          if (!filterKelas || kelas === filterKelas) {
+            const waktu = data.time?.seconds ? 
+              new Date(data.time.seconds * 1000).toLocaleString() : "-";
+            logsTable.innerHTML += `
+              <tr>
+                <td>${email}</td>
+                <td>${kelas}</td>
+                <td>${data.reason}</td>
+                <td>${waktu}</td>
+              </tr>
+            `;
+          }
+        }
+      });
+    }
+
+    kelasFilter.addEventListener("change", loadLogsRealtime);
+
+    // 🚀 Jalankan saat halaman dibuka
+    loadKelasFilter().then(() => loadLogsRealtime());
   </script>
 </body>
 </html>
