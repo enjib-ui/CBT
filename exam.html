@@ -53,10 +53,11 @@
   </header>
 
   <div class="container">
-    <button id="startBtn" disabled onclick="startExam()">Mulai Ujian</button>
-    <p id="startMsg" style="text-align:center;font-weight:bold;color:#e67e22;"></p>
-
-    <div id="examArea" style="display:none;">
+    <div id="startSection">
+      <button id="startBtn" onclick="startExam()" disabled>Mulai Ujian</button>
+      <p id="startMsg">Menunggu waktu ujian...</p>
+    </div>
+    <div id="examSection" style="display:none;">
       <div id="question"></div>
       <div id="opts"></div>
       <div id="navQ"></div>
@@ -88,9 +89,11 @@
     let answers = {};
     let kelasUser = "";
     let timerInterval;
-    let soalStart = null, soalEnd = null, soalFound = null;
+    let soalStart, soalEnd;
 
-    // ✅ Cek login siswa
+    // =====================
+    // Cek login siswa
+    // =====================
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
         window.location.href = "index.html";
@@ -99,13 +102,17 @@
       const userDoc = await getDoc(doc(db, "users", user.uid));
       if (userDoc.exists()) {
         kelasUser = userDoc.data().kelas;
-        getSoal();
+        loadSoal();
       }
     });
 
-    // ✅ Ambil soal aktif
-    async function getSoal() {
+    // =====================
+    // Ambil soal aktif
+    // =====================
+    async function loadSoal() {
       const snapshot = await getDocs(collection(db, "soal"));
+      let soalFound = null;
+
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
         if (data.aktif && docSnap.id.startsWith(kelasUser)) {
@@ -113,21 +120,26 @@
         }
       });
 
-      if (!soalFound) {
-        document.getElementById("startMsg").innerText = "❌ Tidak ada soal aktif untuk kelas Anda.";
-        return;
+      if (soalFound) {
+        soalData = soalFound.soal;
+
+        // hitung waktu mulai & selesai
+        const [jam, menit] = soalFound.jamMulai.split(":").map(Number);
+        soalStart = new Date();
+        soalStart.setHours(jam, menit, 0, 0);
+        soalEnd = new Date(soalStart.getTime() + soalFound.durasi * 60000);
+
+        // cek status ujian setiap detik
+        setInterval(checkStartTime, 1000);
+      } else {
+        document.querySelector(".container").innerHTML =
+          "<p>❌ Tidak ada soal aktif untuk kelas ini.</p>";
       }
-
-      // Hitung waktu mulai & selesai
-      const [jam, menit] = soalFound.jamMulai.split(":").map(Number);
-      soalStart = new Date();
-      soalStart.setHours(jam, menit, 0, 0);
-      soalEnd = new Date(soalStart.getTime() + soalFound.durasi * 60000);
-
-      checkStartTime();
-      setInterval(checkStartTime, 1000); // update setiap detik
     }
 
+    // =====================
+    // Cek apakah ujian bisa dimulai
+    // =====================
     function checkStartTime() {
       const now = new Date();
       const btn = document.getElementById("startBtn");
@@ -148,29 +160,25 @@
       }
     }
 
-    // ✅ Mulai ujian
+    // =====================
+    // Mulai ujian
+    // =====================
     window.startExam = function() {
-      soalData = soalFound.soal;
-      document.getElementById("startBtn").style.display = "none";
-      document.getElementById("startMsg").style.display = "none";
-      document.getElementById("examArea").style.display = "block";
-
+      document.getElementById("startSection").style.display = "none";
+      document.getElementById("examSection").style.display = "block";
       renderQuestion();
       renderNav();
-      startTimer(soalFound.jamMulai, soalFound.durasi);
+      startTimer();
       startFullscreen();
     };
 
-    // ✅ Timer
-    function startTimer(startTime, duration) {
-      const [jam, menit] = startTime.split(":").map(Number);
-      const mulai = new Date();
-      mulai.setHours(jam, menit, 0, 0);
-      const selesai = new Date(mulai.getTime() + duration * 60000);
-
+    // =====================
+    // Timer
+    // =====================
+    function startTimer() {
       timerInterval = setInterval(() => {
         const now = new Date();
-        const sisa = selesai - now;
+        const sisa = soalEnd - now;
 
         if (sisa <= 0) {
           clearInterval(timerInterval);
@@ -187,7 +195,9 @@
       }, 1000);
     }
 
-    // ✅ Render soal
+    // =====================
+    // Render soal
+    // =====================
     function renderQuestion() {
       if (soalData.length === 0) return;
       document.getElementById("question").innerText = soalData[current].Pertanyaan;
