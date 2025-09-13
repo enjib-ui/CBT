@@ -63,7 +63,7 @@
       <h3>Daftar Soal</h3>
       <table id="soalTable">
         <thead>
-          <tr><th>ID Soal</th><th>Status</th><th>Aksi</th></tr>
+          <tr><th>ID Soal</th><th>Status</th><th>Sesi</th><th>Mulai</th><th>Durasi</th><th>Aksi</th></tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -91,7 +91,7 @@
         <tbody></tbody>
       </table>
     </section>
-    
+
     <!-- Log Pelanggaran -->
     <section id="logs" class="card" style="display:none;">
       <h3>Log Pelanggaran</h3>
@@ -102,32 +102,6 @@
         <tbody></tbody>
       </table>
     </section>
-  </div>
-
-  <!-- Modal Atur Jadwal -->
-  <div id="jadwalModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0;
-      background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center;">
-    <div style="background:white; padding:20px; border-radius:10px; width:300px;">
-      <h3>Atur Jadwal Ujian</h3>
-      <label>Sesi:</label>
-      <select id="sesiInput">
-        <option value="1">Sesi 1</option>
-        <option value="2">Sesi 2</option>
-        <option value="3">Sesi 3</option>
-        <option value="4">Sesi 4</option>
-      </select><br>
-
-      <label>Jam Mulai:</label>
-      <input type="time" id="jamMulai" onchange="previewJadwal()"><br>
-
-      <label>Durasi (menit):</label>
-      <input type="number" id="durasi" value="60" onchange="previewJadwal()"><br>
-
-      <p id="previewWaktu" style="font-size:14px; color:#555; margin-top:5px;"></p>
-
-      <button onclick="simpanJadwal()">✅ Simpan</button>
-      <button class="danger" onclick="tutupJadwal()">❌ Batal</button>
-    </div>
   </div>
 
   <script type="module">
@@ -172,16 +146,39 @@
         const row = `<tr>
           <td>${docSnap.id}</td>
           <td>${data.aktif ? "Aktif" : "Nonaktif"}</td>
+          <td>${data.sesi || "-"}</td>
+          <td>${data.jamMulai || "-"}</td>
+          <td>${data.durasi ? data.durasi + " menit" : "-"}</td>
           <td>
             ${data.aktif
               ? `<button class="secondary" onclick="nonaktifkanSoal('${docSnap.id}')">Nonaktifkan</button>`
-              : `<button onclick="aturJadwalSoal('${docSnap.id}')">Aktifkan</button>`}
+              : `<button onclick="aktifkanSoal('${docSnap.id}')">Aktifkan</button>`}
             <button class="danger" onclick="hapusSoal('${docSnap.id}')">Hapus</button>
           </td>
         </tr>`;
         tbody.innerHTML += row;
       });
     }
+
+    window.aktifkanSoal = async function(docId) {
+      const sesi = prompt("Pilih sesi ujian (1-4):");
+      const jamMulai = prompt("Masukkan jam mulai (format HH:MM):");
+      const durasi = prompt("Masukkan durasi ujian (menit):");
+
+      if (!sesi || !jamMulai || !durasi) {
+        alert("❌ Semua data harus diisi!");
+        return;
+      }
+
+      await setDoc(doc(db, "soal", docId), {
+        aktif: true,
+        sesi: parseInt(sesi),
+        jamMulai: jamMulai,
+        durasi: parseInt(durasi)
+      }, { merge: true });
+
+      loadSoal();
+    };
 
     window.nonaktifkanSoal = async function(docId) {
       await setDoc(doc(db, "soal", docId), { aktif: false }, { merge: true });
@@ -191,54 +188,6 @@
     window.hapusSoal = async function(docId) {
       if (!confirm(`Hapus soal ${docId}?`)) return;
       await deleteDoc(doc(db, "soal", docId));
-      loadSoal();
-    };
-
-    let currentSoalId = null;
-    window.aturJadwalSoal = function(docId) {
-      currentSoalId = docId;
-      document.getElementById("jadwalModal").style.display = "flex";
-    };
-
-    window.tutupJadwal = function() {
-      document.getElementById("jadwalModal").style.display = "none";
-      currentSoalId = null;
-    };
-
-    window.previewJadwal = function() {
-      const jamMulai = document.getElementById("jamMulai").value;
-      const durasi = parseInt(document.getElementById("durasi").value);
-      if (!jamMulai || !durasi) {
-        document.getElementById("previewWaktu").innerText = "";
-        return;
-      }
-      const [h, m] = jamMulai.split(":").map(Number);
-      const mulai = new Date();
-      mulai.setHours(h, m, 0, 0);
-      const selesai = new Date(mulai.getTime() + durasi * 60000);
-      document.getElementById("previewWaktu").innerText =
-        `⏰ Mulai: ${jamMulai} | ⏳ Selesai: ${selesai.getHours().toString().padStart(2,"0")}:${selesai.getMinutes().toString().padStart(2,"0")}`;
-    };
-
-    window.simpanJadwal = async function() {
-      const sesi = document.getElementById("sesiInput").value;
-      const jamMulai = document.getElementById("jamMulai").value;
-      const durasi = parseInt(document.getElementById("durasi").value);
-
-      if (!jamMulai || !durasi) {
-        alert("⚠️ Lengkapi jam mulai dan durasi!");
-        return;
-      }
-
-      await setDoc(doc(db, "soal", currentSoalId), {
-        aktif: true,
-        sesi: sesi,
-        jamMulai: jamMulai,
-        durasi: durasi
-      }, { merge: true });
-
-      alert("✅ Jadwal ujian berhasil disimpan");
-      tutupJadwal();
       loadSoal();
     };
 
@@ -284,29 +233,16 @@
         const data = log.data();
         let email = data.uid;
         let kelas = "-";
-
-        try {
-          const userDoc = await getDoc(doc(db, "users", data.uid));
-          if (userDoc.exists()) {
-            email = userDoc.data().email;
-            kelas = userDoc.data().kelas;
-          }
-        } catch {}
-
-        let waktu = "-";
-        if (data.time) {
-          try {
-            waktu = new Date(data.time.seconds ? data.time.seconds * 1000 : data.time).toLocaleString();
-          } catch {
-            waktu = new Date(data.time).toLocaleString();
-          }
+        const userDoc = await getDoc(doc(db, "users", data.uid));
+        if (userDoc.exists()) {
+          email = userDoc.data().email;
+          kelas = userDoc.data().kelas;
         }
-
         tbody.innerHTML += `<tr>
           <td>${email}</td>
           <td>${kelas}</td>
           <td>${data.reason}</td>
-          <td>${waktu}</td>
+          <td>${new Date(data.time.seconds * 1000).toLocaleString()}</td>
         </tr>`;
       }
     }
@@ -337,7 +273,8 @@
             const userCred = await createUserWithEmailAndPassword(auth, email, password);
             await setDoc(doc(db, "users", userCred.user.uid), { nama, email, kelas, role: "siswa" });
             success++;
-          } catch {
+          } catch (err) {
+            console.error("Gagal tambah siswa:", err.message);
             failed++;
           }
         }
@@ -387,4 +324,5 @@
     };
   </script>
 </body>
-</html>
+  </html>
+  
