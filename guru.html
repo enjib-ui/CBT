@@ -33,6 +33,12 @@
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
     th { background: #3498db; color: white; }
+    /* Modal Jadwal */
+    #jadwalModal { display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+      background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; }
+    #jadwalModal .modal-box {
+      background:white; padding:20px; border-radius:10px; width:300px;
+    }
   </style>
 </head>
 <body>
@@ -63,7 +69,7 @@
       <h3>Daftar Soal</h3>
       <table id="soalTable">
         <thead>
-          <tr><th>ID Soal</th><th>Status</th><th>Aksi</th></tr>
+          <tr><th>ID Soal</th><th>Status</th><th>Sesi</th><th>Jam Mulai</th><th>Durasi</th><th>Aksi</th></tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -107,11 +113,34 @@
       </table>
     </section>
   </div>
+
+  <!-- Modal Atur Jadwal -->
+  <div id="jadwalModal">
+    <div class="modal-box">
+      <h3>Atur Jadwal Ujian</h3>
+      <label>Sesi:</label>
+      <select id="sesiInput">
+        <option value="1">Sesi 1</option>
+        <option value="2">Sesi 2</option>
+        <option value="3">Sesi 3</option>
+        <option value="4">Sesi 4</option>
+      </select><br>
+
+      <label>Jam Mulai:</label>
+      <input type="time" id="jamMulai"><br>
+
+      <label>Durasi (menit):</label>
+      <input type="number" id="durasi" value="60"><br><br>
+
+      <button onclick="simpanJadwal()">✅ Simpan</button>
+      <button class="danger" onclick="tutupJadwal()">❌ Batal</button>
+    </div>
+  </div>
   
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
     import { getAuth, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-    import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
     import * as XLSX from "https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs";
 
     const firebaseConfig = {
@@ -140,71 +169,82 @@
       if(page === 'logs') loadLogs();
     };
 
-    // ====== Log Pelanggaran ======
-    async function loadLogs() {
-      const tbody = document.querySelector("#logsTable tbody");
+    // ====== Kelola Soal ======
+    async function loadSoal() {
+      const tbody = document.querySelector("#soalTable tbody");
       tbody.innerHTML = "";
-      const filterDate = document.getElementById("filterDate").value;
-
-      const snapshot = await getDocs(collection(db, "cheatingLogs"));
-
-      for (const log of snapshot.docs) {
-        const data = log.data();
-        let email = data.uid;
-        let kelas = "-";
-
-        // Ambil info user dari koleksi users
-        const userDoc = await getDoc(doc(db, "users", data.uid));
-        if (userDoc.exists()) {
-          email = userDoc.data().email;
-          kelas = userDoc.data().kelas;
-        }
-
-        let waktu = new Date();
-        if (data.time?.seconds) {
-          waktu = new Date(data.time.seconds * 1000);
-        } else if (data.time) {
-          waktu = new Date(data.time);
-        }
-
-        const tanggalLog = waktu.toISOString().split("T")[0];
-        if (!filterDate || filterDate === tanggalLog) {
-          tbody.innerHTML += `<tr>
-            <td>${email}</td>
-            <td>${kelas}</td>
-            <td>${data.reason}</td>
-            <td>${waktu.toLocaleString()}</td>
-          </tr>`;
-        }
-      }
+      const snapshot = await getDocs(collection(db, "soal"));
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const row = `<tr>
+          <td>${docSnap.id}</td>
+          <td>${data.aktif ? "Aktif" : "Nonaktif"}</td>
+          <td>${data.sesi || "-"}</td>
+          <td>${data.jamMulai || "-"}</td>
+          <td>${data.durasi || "-"}</td>
+          <td>
+            ${data.aktif
+              ? `<button class="secondary" onclick="nonaktifkanSoal('${docSnap.id}')">Nonaktifkan</button>`
+              : `<button onclick="aturJadwalSoal('${docSnap.id}')">Aktifkan</button>`}
+            <button class="danger" onclick="hapusSoal('${docSnap.id}')">Hapus</button>
+          </td>
+        </tr>`;
+        tbody.innerHTML += row;
+      });
     }
 
-    // Hapus semua log sesuai tanggal filter
-    window.hapusLogHarian = async function() {
-      const filterDate = document.getElementById("filterDate").value;
-      if (!filterDate) {
-        alert("⚠️ Pilih tanggal terlebih dahulu!");
-        return;
-      }
-      if (!confirm("Yakin hapus semua log pada " + filterDate + "?")) return;
-
-      const snapshot = await getDocs(collection(db, "cheatingLogs"));
-      for (const log of snapshot.docs) {
-        const data = log.data();
-        let waktu = new Date();
-        if (data.time?.seconds) waktu = new Date(data.time.seconds * 1000);
-        else if (data.time) waktu = new Date(data.time);
-
-        const tanggalLog = waktu.toISOString().split("T")[0];
-        if (tanggalLog === filterDate) {
-          await deleteDoc(doc(db, "cheatingLogs", log.id));
-        }
-      }
-      alert("✅ Semua log tanggal " + filterDate + " berhasil dihapus");
-      loadLogs();
+    window.aktifkanSoal = async function(docId) {
+      await setDoc(doc(db, "soal", docId), { aktif: true }, { merge: true });
+      loadSoal();
     };
 
-    // (kode soal, siswa, upload siswa excel, upload soal tetap sama seperti versi sebelumnya)
+    window.nonaktifkanSoal = async function(docId) {
+      await setDoc(doc(db, "soal", docId), { aktif: false }, { merge: true });
+      loadSoal();
+    };
+
+    window.hapusSoal = async function(docId) {
+      if (!confirm(`Hapus soal ${docId}?`)) return;
+      await deleteDoc(doc(db, "soal", docId));
+      loadSoal();
+    };
+
+    // ====== Modal Jadwal ======
+    let currentSoalId = null;
+
+    window.aturJadwalSoal = function(docId) {
+      currentSoalId = docId;
+      document.getElementById("jadwalModal").style.display = "flex";
+    };
+
+    window.tutupJadwal = function() {
+      document.getElementById("jadwalModal").style.display = "none";
+      currentSoalId = null;
+    };
+
+    window.simpanJadwal = async function() {
+      const sesi = document.getElementById("sesiInput").value;
+      const jamMulai = document.getElementById("jamMulai").value;
+      const durasi = parseInt(document.getElementById("durasi").value);
+
+      if (!jamMulai || !durasi) {
+        alert("⚠️ Lengkapi jam mulai dan durasi!");
+        return;
+      }
+
+      await setDoc(doc(db, "soal", currentSoalId), {
+        aktif: true,
+        sesi: sesi,
+        jamMulai: jamMulai,
+        durasi: durasi
+      }, { merge: true });
+
+      alert("✅ Jadwal ujian berhasil disimpan");
+      tutupJadwal();
+      loadSoal();
+    };
+
+    // (bagian siswa, upload excel, upload soal tetap sama dengan versi sebelumnya)
   </script>
 </body>
   </html>
