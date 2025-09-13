@@ -58,10 +58,12 @@
   </div>
 
   <script type="module">
+    // 🔹 Import Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
+    // 🔹 Konfigurasi Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
       authDomain: "authfirebase-4a2ce.firebaseapp.com",
@@ -78,7 +80,6 @@
     let soalData = [];
     let current = 0;
     let answers = {};
-    let submitted = false;
     let kelasUser = "";
 
     // ✅ Cek login siswa
@@ -110,7 +111,7 @@
         soalData = soalFound.soal;
         renderQuestion();
         renderNav();
-        startFullscreen();
+        startFullscreen(); // ✅ mulai fullscreen
       } else {
         document.querySelector(".container").innerHTML =
           "<p>❌ Tidak ada soal aktif untuk kelas ini.</p>";
@@ -165,7 +166,6 @@
     }
 
     window.submitExam = async function() {
-      submitted = true;
       document.getElementById("submitBtn").disabled = true;
       document.getElementById("submitMsg").innerText = "✅ Jawaban berhasil dikirim!";
     };
@@ -174,56 +174,54 @@
       await signOut(auth);
       window.location.href = "index.html";
     };
+
     // ==========================
-// Anti-Cheat Features
-// ==========================
+    // 🔹 Anti-Cheat Features
+    // ==========================
 
-// 1. Paksa fullscreen saat mulai ujian
+    // Paksa fullscreen
     function startFullscreen() {
-  if (document.documentElement.requestFullscreen) {
-    document.documentElement.requestFullscreen();
-  }
-}
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen();
+      }
+    }
 
-// 2. Deteksi keluar fullscreen
+    // Deteksi keluar fullscreen
     document.addEventListener("fullscreenchange", () => {
-  if (!document.fullscreenElement) {
-    alert("⚠️ Anda keluar dari fullscreen! Harap kembali.");
-    logCheating("Keluar fullscreen");
-  }
-});
-
-// 3. Deteksi pindah tab / minimize
-    document.addEventListener("visibilitychange", () => {
-  if (document.hidden) {
-    alert("⚠️ Anda meninggalkan tab ujian!");
-    logCheating("Pindah tab / minimize");
-  }
-});
-
-// 4. Nonaktifkan klik kanan & copy-paste
-    document.addEventListener("contextmenu", e => e.preventDefault());
-document.addEventListener("copy", e => e.preventDefault());
-document.addEventListener("cut", e => e.preventDefault());
-document.addEventListener("paste", e => e.preventDefault());
-
-// 5. Fungsi simpan log ke Firestore
-    import { collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
-
-  async function logCheating(reason) {
-  const user = auth.currentUser;
-  if (!user) return;
-  try {
-    await addDoc(collection(db, "cheatingLogs"), {
-      uid: user.uid,
-      reason,
-      time: new Date()
+      if (!document.fullscreenElement) {
+        alert("⚠️ Anda keluar dari fullscreen!");
+        logCheating("Keluar fullscreen");
+      }
     });
-  } catch (e) {
-    console.error("Gagal simpan log:", e);
-  }
-        }
-    
+
+    // Deteksi pindah tab / minimize
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        alert("⚠️ Anda meninggalkan tab ujian!");
+        logCheating("Pindah tab / minimize");
+      }
+    });
+
+    // Nonaktifkan klik kanan & copy-paste
+    document.addEventListener("contextmenu", e => e.preventDefault());
+    document.addEventListener("copy", e => e.preventDefault());
+    document.addEventListener("cut", e => e.preventDefault());
+    document.addEventListener("paste", e => e.preventDefault());
+
+    // Simpan log ke Firestore
+    async function logCheating(reason) {
+      const user = auth.currentUser;
+      if (!user) return;
+      try {
+        await addDoc(collection(db, "cheatingLogs"), {
+          uid: user.uid,
+          reason,
+          time: new Date()
+        });
+      } catch (e) {
+        console.error("Gagal simpan log:", e);
+      }
+    }
   </script>
 </body>
 </html>
