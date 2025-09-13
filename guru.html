@@ -92,14 +92,15 @@
       </table>
     </section>
     
+    <!-- Log Pelanggaran -->
     <section id="logs" class="card" style="display:none;">
-  <h3>Log Pelanggaran</h3>
-  <table id="logsTable">
-    <thead>
-      <tr><th>Email</th><th>Kelas</th><th>Alasan</th><th>Waktu</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+      <h3>Log Pelanggaran</h3>
+      <table id="logsTable">
+        <thead>
+          <tr><th>Email</th><th>Kelas</th><th>Alasan</th><th>Waktu</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </section>
   </div>
   
@@ -107,7 +108,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
     import { getAuth, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-    import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
     import * as XLSX from "https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs";
 
     const firebaseConfig = {
@@ -133,8 +134,7 @@
       document.getElementById(page).style.display = "block";
       if(page === 'soal') loadSoal();
       if(page === 'siswa') loadSiswa();
-      if (page === 'logs') loadLogs();
-      
+      if(page === 'logs') loadLogs();
     };
 
     // ====== Kelola Soal ======
@@ -206,31 +206,51 @@
         }
       });
     }
+
+    // ====== Log Pelanggaran ======
     async function loadLogs() {
-  const tbody = document.querySelector("#logsTable tbody");
-  tbody.innerHTML = "";
-  const snapshot = await getDocs(collection(db, "cheatingLogs"));
-  for (const log of snapshot.docs) {
-    const data = log.data();
-    let email = data.uid;
-    let kelas = "-";
+      const tbody = document.querySelector("#logsTable tbody");
+      tbody.innerHTML = "";
+      const snapshot = await getDocs(collection(db, "cheatingLogs"));
 
-    // Ambil info user dari koleksi users
-    const userDoc = await getDoc(doc(db, "users", data.uid));
-    if (userDoc.exists()) {
-      email = userDoc.data().email;
-      kelas = userDoc.data().kelas;
-    }
+      for (const log of snapshot.docs) {
+        const data = log.data();
+        let email = data.uid;
+        let kelas = "-";
 
-    tbody.innerHTML += `<tr>
-      <td>${email}</td>
-      <td>${kelas}</td>
-      <td>${data.reason}</td>
-      <td>${new Date(data.time.seconds * 1000).toLocaleString()}</td>
-    </tr>`;
-  }
+        // Ambil info user dari koleksi users
+        try {
+          const userDoc = await getDoc(doc(db, "users", data.uid));
+          if (userDoc.exists()) {
+            email = userDoc.data().email;
+            kelas = userDoc.data().kelas;
+          }
+        } catch (err) {
+          console.error("Gagal ambil user:", err);
+        }
+
+        // handle Date atau Timestamp
+        let waktu = "-";
+        if (data.time) {
+          try {
+            if (data.time.seconds) {
+              waktu = new Date(data.time.seconds * 1000).toLocaleString();
+            } else {
+              waktu = new Date(data.time).toLocaleString();
+            }
+          } catch {
+            waktu = new Date().toLocaleString();
+          }
+        }
+
+        tbody.innerHTML += `<tr>
+          <td>${email}</td>
+          <td>${kelas}</td>
+          <td>${data.reason}</td>
+          <td>${waktu}</td>
+        </tr>`;
+      }
     }
-    
 
     // ====== Upload Siswa via Excel ======
     window.uploadSiswaExcel = function() {
