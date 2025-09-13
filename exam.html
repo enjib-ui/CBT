@@ -5,58 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Exam CBT</title>
   <style>
-    body { margin: 0; font-family: Arial, sans-serif; background: #f9f9f9; }
-    header {
-      background: #3498db; color: white; padding: 12px;
-      display: flex; justify-content: space-between; align-items: center;
-      font-size: 18px;
-    }
-    header button {
-      background: #e74c3c; border: none; padding: 8px 12px;
-      color: white; border-radius: 6px; font-size: 14px;
-    }
-    .timer { font-size: 16px; font-weight: bold; }
-    .container { padding: 15px; }
-    #question {
-      background: white; padding: 15px; border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1); margin-bottom: 15px;
-      font-size: 16px;
-    }
-    #opts button {
-      width: 100%; margin: 5px 0; padding: 12px;
-      border: 1px solid #ccc; border-radius: 8px;
-      text-align: left; background: white; font-size: 15px;
-    }
-    #opts button.selected { background: #dff0ff; border-color: #3498db; }
-    #navQ {
-      display: flex; flex-wrap: wrap; gap: 5px; margin-top: 15px;
-    }
-    #navQ button {
-      flex: 1 0 18%; min-width: 40px; padding: 8px;
-      border-radius: 6px; border: none; background: #3498db;
-      color: white; font-size: 14px;
-    }
-    #navQ button.done { background: #27ae60; }
-    #submitBtn {
-      margin-top: 15px; width: 100%; padding: 12px;
-      background: #27ae60; border: none; border-radius: 8px;
-      color: white; font-size: 16px; display: none;
-    }
-    #submitBtn:disabled { background: #aaa; }
+    body { margin:0; font-family: Arial, sans-serif; background:#f9f9f9; }
+    header { background:#3498db; color:white; padding:12px;
+             display:flex; justify-content:space-between; align-items:center; font-size:18px; }
+    header button { background:#e74c3c; border:none; padding:8px 12px; color:white; border-radius:6px; }
+    .timer { font-weight:bold; }
+    .container { padding:15px; }
+    #question { background:white; padding:15px; border-radius:8px;
+                box-shadow:0 2px 6px rgba(0,0,0,0.1); margin-bottom:15px; }
+    #opts button { width:100%; margin:5px 0; padding:12px; border:1px solid #ccc; border-radius:8px;
+                   text-align:left; background:white; }
+    #opts button.selected { background:#dff0ff; border-color:#3498db; }
+    #navQ { display:flex; flex-wrap:wrap; gap:5px; margin-top:15px; }
+    #navQ button { flex:1 0 18%; min-width:40px; padding:8px; border-radius:6px; border:none;
+                   background:#3498db; color:white; }
+    #navQ button.done { background:#27ae60; }
+    #submitBtn { margin-top:15px; width:100%; padding:12px; background:#27ae60; border:none;
+                 border-radius:8px; color:white; font-size:16px; display:none; }
+    #submitBtn:disabled { background:#aaa; }
+    #startSection { text-align:center; margin-top:40px; }
+    #startSection button { padding:12px 20px; font-size:16px; background:#27ae60; color:white;
+                           border:none; border-radius:8px; }
   </style>
 </head>
 <body>
   <header>
     <span>Ujian CBT</span>
-    <span class="timer" id="timer">00:00</span>
+    <span class="timer" id="timer">--:--</span>
     <button onclick="logout()">Logout</button>
   </header>
 
   <div class="container">
+    <!-- sebelum ujian -->
     <div id="startSection">
+      <p id="startMsg">⏳ Menunggu jadwal ujian...</p>
       <button id="startBtn" onclick="startExam()" disabled>Mulai Ujian</button>
-      <p id="startMsg">Menunggu waktu ujian...</p>
     </div>
+
+    <!-- saat ujian -->
     <div id="examSection" style="display:none;">
       <div id="question"></div>
       <div id="opts"></div>
@@ -88,17 +74,10 @@
     let current = 0;
     let answers = {};
     let kelasUser = "";
-    let timerInterval;
-    let soalStart, soalEnd;
+    let soalStart, soalEnd, timerInterval;
 
-    // =====================
-    // Cek login siswa
-    // =====================
     onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        window.location.href = "index.html";
-        return;
-      }
+      if (!user) { window.location.href = "index.html"; return; }
       const userDoc = await getDoc(doc(db, "users", user.uid));
       if (userDoc.exists()) {
         kelasUser = userDoc.data().kelas;
@@ -106,9 +85,6 @@
       }
     });
 
-    // =====================
-    // Ambil soal aktif
-    // =====================
     async function loadSoal() {
       const snapshot = await getDocs(collection(db, "soal"));
       let soalFound = null;
@@ -120,26 +96,24 @@
         }
       });
 
-      if (soalFound) {
-        soalData = soalFound.soal;
-
-        // hitung waktu mulai & selesai
-        const [jam, menit] = soalFound.jamMulai.split(":").map(Number);
-        soalStart = new Date();
-        soalStart.setHours(jam, menit, 0, 0);
-        soalEnd = new Date(soalStart.getTime() + soalFound.durasi * 60000);
-
-        // cek status ujian setiap detik
-        setInterval(checkStartTime, 1000);
-      } else {
-        document.querySelector(".container").innerHTML =
-          "<p>❌ Tidak ada soal aktif untuk kelas ini.</p>";
+      if (!soalFound) {
+        document.querySelector(".container").innerHTML = "<p>❌ Tidak ada soal aktif.</p>";
+        return;
       }
+
+      soalData = soalFound.soal;
+      const [jam, menit] = soalFound.jamMulai.split(":").map(Number);
+      soalStart = new Date();
+      soalStart.setHours(jam, menit, 0, 0);
+      soalEnd = new Date(soalStart.getTime() + soalFound.durasi * 60000);
+
+      console.log("⏰ Debug", { jamMulai: soalFound.jamMulai, durasi: soalFound.durasi,
+                                start: soalStart.toString(), end: soalEnd.toString(),
+                                now: new Date().toString() });
+
+      setInterval(checkStartTime, 1000);
     }
 
-    // =====================
-    // Cek apakah ujian bisa dimulai
-    // =====================
     function checkStartTime() {
       const now = new Date();
       const btn = document.getElementById("startBtn");
@@ -148,21 +122,16 @@
       if (now < soalStart) {
         btn.disabled = true;
         const sisa = Math.floor((soalStart - now) / 1000);
-        const m = Math.floor(sisa / 60);
-        const s = sisa % 60;
-        msg.innerText = `⏳ Ujian akan dimulai dalam ${m} menit ${s} detik`;
+        msg.innerText = `⏳ Mulai dalam ${Math.floor(sisa/60)} menit ${sisa%60} detik`;
       } else if (now >= soalStart && now <= soalEnd) {
         btn.disabled = false;
-        msg.innerText = "✅ Ujian sudah bisa dimulai, silakan klik tombol!";
+        msg.innerText = "✅ Ujian bisa dimulai!";
       } else {
         btn.disabled = true;
         msg.innerText = "❌ Waktu ujian sudah berakhir.";
       }
     }
 
-    // =====================
-    // Mulai ujian
-    // =====================
     window.startExam = function() {
       document.getElementById("startSection").style.display = "none";
       document.getElementById("examSection").style.display = "block";
@@ -172,9 +141,6 @@
       startFullscreen();
     };
 
-    // =====================
-    // Timer
-    // =====================
     function startTimer() {
       timerInterval = setInterval(() => {
         const now = new Date();
@@ -183,7 +149,7 @@
         if (sisa <= 0) {
           clearInterval(timerInterval);
           document.getElementById("timer").innerText = "00:00";
-          alert("⏰ Waktu habis! Anda akan logout.");
+          alert("⏰ Waktu habis! Logout otomatis.");
           logout();
         } else {
           const m = Math.floor((sisa / 1000 / 60) % 60);
@@ -195,9 +161,6 @@
       }, 1000);
     }
 
-    // =====================
-    // Render soal
-    // =====================
     function renderQuestion() {
       if (soalData.length === 0) return;
       document.getElementById("question").innerText = soalData[current].Pertanyaan;
@@ -233,13 +196,13 @@
       checkAllAnswered();
     }
 
-    function checkAllAnswered(){
+    function checkAllAnswered() {
       if (Object.keys(answers).length === soalData.length) {
         document.getElementById("submitBtn").style.display = "block";
       }
     }
 
-    async function saveAnswer(){
+    async function saveAnswer() {
       const user = auth.currentUser;
       if (!user) return;
       await setDoc(doc(db, "jawaban", user.uid), { answers }, { merge: true });
@@ -265,21 +228,12 @@
         document.documentElement.requestFullscreen();
       }
     }
-
     document.addEventListener("fullscreenchange", () => {
-      if (!document.fullscreenElement) {
-        alert("⚠️ Anda keluar dari fullscreen! Harap kembali.");
-        logCheating("Keluar fullscreen");
-      }
+      if (!document.fullscreenElement) logCheating("Keluar fullscreen");
     });
-
     document.addEventListener("visibilitychange", () => {
-      if (document.hidden) {
-        alert("⚠️ Anda meninggalkan tab ujian!");
-        logCheating("Pindah tab / minimize");
-      }
+      if (document.hidden) logCheating("Pindah tab/minimize");
     });
-
     document.addEventListener("contextmenu", e => e.preventDefault());
     document.addEventListener("copy", e => e.preventDefault());
     document.addEventListener("cut", e => e.preventDefault());
@@ -288,15 +242,7 @@
     async function logCheating(reason) {
       const user = auth.currentUser;
       if (!user) return;
-      try {
-        await addDoc(collection(db, "cheatingLogs"), {
-          uid: user.uid,
-          reason,
-          time: new Date()
-        });
-      } catch (e) {
-        console.error("Gagal simpan log:", e);
-      }
+      await addDoc(collection(db, "cheatingLogs"), { uid: user.uid, reason, time: new Date() });
     }
   </script>
 </body>
