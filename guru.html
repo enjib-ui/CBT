@@ -63,7 +63,7 @@
       <h3>Daftar Soal</h3>
       <table id="soalTable">
         <thead>
-          <tr><th>ID Soal</th><th>Status</th><th>Sesi</th><th>Jam</th><th>Durasi</th><th>Aksi</th></tr>
+          <tr><th>ID Soal</th><th>Status</th><th>Aksi</th></tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -78,6 +78,11 @@
       <input type="text" id="kelasSiswa" placeholder="Kelas (misal: kelas10)" />
       <button onclick="tambahSiswa()">Tambah</button>
 
+      <h3>Upload Siswa via Excel</h3>
+      <input type="file" id="fileSiswa" />
+      <button onclick="uploadSiswaExcel()">Upload Excel</button>
+      <p style="font-size:13px;color:#555;">Format kolom: <b>Nama</b>, <b>Email</b>, <b>Password</b>, <b>Kelas</b></p>
+
       <h3>Daftar Siswa</h3>
       <table id="siswaTable">
         <thead>
@@ -86,8 +91,8 @@
         <tbody></tbody>
       </table>
     </section>
-
-    <!-- Log -->
+    
+    <!-- Log Pelanggaran -->
     <section id="logs" class="card" style="display:none;">
       <h3>Log Pelanggaran</h3>
       <table id="logsTable">
@@ -97,6 +102,32 @@
         <tbody></tbody>
       </table>
     </section>
+  </div>
+
+  <!-- Modal Atur Jadwal -->
+  <div id="jadwalModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+      background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center;">
+    <div style="background:white; padding:20px; border-radius:10px; width:300px;">
+      <h3>Atur Jadwal Ujian</h3>
+      <label>Sesi:</label>
+      <select id="sesiInput">
+        <option value="1">Sesi 1</option>
+        <option value="2">Sesi 2</option>
+        <option value="3">Sesi 3</option>
+        <option value="4">Sesi 4</option>
+      </select><br>
+
+      <label>Jam Mulai:</label>
+      <input type="time" id="jamMulai" onchange="previewJadwal()"><br>
+
+      <label>Durasi (menit):</label>
+      <input type="number" id="durasi" value="60" onchange="previewJadwal()"><br>
+
+      <p id="previewWaktu" style="font-size:14px; color:#555; margin-top:5px;"></p>
+
+      <button onclick="simpanJadwal()">✅ Simpan</button>
+      <button class="danger" onclick="tutupJadwal()">❌ Batal</button>
+    </div>
   </div>
 
   <script type="module">
@@ -118,11 +149,11 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // === Navigasi ===
     window.logout = async function() {
       await signOut(auth);
       window.location.href = "index.html";
     };
+
     window.showPage = function(page) {
       document.querySelectorAll('.content section').forEach(sec => sec.style.display = "none");
       document.getElementById(page).style.display = "block";
@@ -131,7 +162,7 @@
       if(page === 'logs') loadLogs();
     };
 
-    // === Kelola Soal ===
+    // ====== Kelola Soal ======
     async function loadSoal() {
       const tbody = document.querySelector("#soalTable tbody");
       tbody.innerHTML = "";
@@ -141,35 +172,16 @@
         const row = `<tr>
           <td>${docSnap.id}</td>
           <td>${data.aktif ? "Aktif" : "Nonaktif"}</td>
-          <td>${data.sesi || "-"}</td>
-          <td>${data.jamMulai || "-"}</td>
-          <td>${data.durasi || "-"}</td>
           <td>
             ${data.aktif
               ? `<button class="secondary" onclick="nonaktifkanSoal('${docSnap.id}')">Nonaktifkan</button>`
-              : `<button onclick="aktifkanSoalPrompt('${docSnap.id}')">Aktifkan</button>`}
+              : `<button onclick="aturJadwalSoal('${docSnap.id}')">Aktifkan</button>`}
             <button class="danger" onclick="hapusSoal('${docSnap.id}')">Hapus</button>
           </td>
         </tr>`;
         tbody.innerHTML += row;
       });
     }
-
-    window.aktifkanSoalPrompt = function(docId) {
-      const sesi = prompt("Masukkan sesi ujian (1-4):");
-      const jam = prompt("Masukkan jam mulai (HH:MM):");
-      const durasi = prompt("Masukkan durasi ujian (menit):");
-      if (!sesi || !jam || !durasi) {
-        alert("⚠️ Semua data wajib diisi!");
-        return;
-      }
-      aktifkanSoal(docId, parseInt(sesi), jam, parseInt(durasi));
-    };
-
-    window.aktifkanSoal = async function(docId, sesi, jam, durasi) {
-      await setDoc(doc(db, "soal", docId), { aktif: true, sesi, jamMulai: jam, durasi }, { merge: true });
-      loadSoal();
-    };
 
     window.nonaktifkanSoal = async function(docId) {
       await setDoc(doc(db, "soal", docId), { aktif: false }, { merge: true });
@@ -182,7 +194,55 @@
       loadSoal();
     };
 
-    // === Kelola Siswa ===
+    let currentSoalId = null;
+    window.aturJadwalSoal = function(docId) {
+      currentSoalId = docId;
+      document.getElementById("jadwalModal").style.display = "flex";
+    };
+
+    window.tutupJadwal = function() {
+      document.getElementById("jadwalModal").style.display = "none";
+      currentSoalId = null;
+    };
+
+    window.previewJadwal = function() {
+      const jamMulai = document.getElementById("jamMulai").value;
+      const durasi = parseInt(document.getElementById("durasi").value);
+      if (!jamMulai || !durasi) {
+        document.getElementById("previewWaktu").innerText = "";
+        return;
+      }
+      const [h, m] = jamMulai.split(":").map(Number);
+      const mulai = new Date();
+      mulai.setHours(h, m, 0, 0);
+      const selesai = new Date(mulai.getTime() + durasi * 60000);
+      document.getElementById("previewWaktu").innerText =
+        `⏰ Mulai: ${jamMulai} | ⏳ Selesai: ${selesai.getHours().toString().padStart(2,"0")}:${selesai.getMinutes().toString().padStart(2,"0")}`;
+    };
+
+    window.simpanJadwal = async function() {
+      const sesi = document.getElementById("sesiInput").value;
+      const jamMulai = document.getElementById("jamMulai").value;
+      const durasi = parseInt(document.getElementById("durasi").value);
+
+      if (!jamMulai || !durasi) {
+        alert("⚠️ Lengkapi jam mulai dan durasi!");
+        return;
+      }
+
+      await setDoc(doc(db, "soal", currentSoalId), {
+        aktif: true,
+        sesi: sesi,
+        jamMulai: jamMulai,
+        durasi: durasi
+      }, { merge: true });
+
+      alert("✅ Jadwal ujian berhasil disimpan");
+      tutupJadwal();
+      loadSoal();
+    };
+
+    // ====== Kelola Siswa ======
     window.tambahSiswa = async function() {
       const nama = document.getElementById("namaSiswa").value.trim();
       const email = document.getElementById("emailSiswa").value.trim();
@@ -209,12 +269,13 @@
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
         if (data.role === "siswa") {
-          tbody.innerHTML += `<tr><td>${data.nama}</td><td>${data.email}</td><td>${data.kelas}</td></tr>`;
+          const row = `<tr><td>${data.nama}</td><td>${data.email}</td><td>${data.kelas}</td></tr>`;
+          tbody.innerHTML += row;
         }
       });
     }
 
-    // === Log Pelanggaran ===
+    // ====== Log Pelanggaran ======
     async function loadLogs() {
       const tbody = document.querySelector("#logsTable tbody");
       tbody.innerHTML = "";
@@ -223,27 +284,38 @@
         const data = log.data();
         let email = data.uid;
         let kelas = "-";
-        const userDoc = await getDoc(doc(db, "users", data.uid));
-        if (userDoc.exists()) {
-          email = userDoc.data().email;
-          kelas = userDoc.data().kelas;
+
+        try {
+          const userDoc = await getDoc(doc(db, "users", data.uid));
+          if (userDoc.exists()) {
+            email = userDoc.data().email;
+            kelas = userDoc.data().kelas;
+          }
+        } catch {}
+
+        let waktu = "-";
+        if (data.time) {
+          try {
+            waktu = new Date(data.time.seconds ? data.time.seconds * 1000 : data.time).toLocaleString();
+          } catch {
+            waktu = new Date(data.time).toLocaleString();
+          }
         }
+
         tbody.innerHTML += `<tr>
           <td>${email}</td>
           <td>${kelas}</td>
           <td>${data.reason}</td>
-          <td>${new Date(data.time.seconds * 1000).toLocaleString()}</td>
+          <td>${waktu}</td>
         </tr>`;
       }
     }
 
-    // === Upload Soal ===
-    window.uploadSoal = function() {
-      const fileInput = document.getElementById("fileInput");
-      const kelas = document.getElementById("kelasInput").value.trim();
-      const mapel = document.getElementById("mapelInput").value.trim();
-      if (!fileInput.files[0] || !kelas || !mapel) {
-        alert("⚠️ Lengkapi file, kelas, dan mapel!");
+    // ====== Upload Siswa via Excel ======
+    window.uploadSiswaExcel = function() {
+      const fileInput = document.getElementById("fileSiswa");
+      if (!fileInput.files[0]) {
+        alert("⚠️ Pilih file Excel siswa terlebih dahulu!");
         return;
       }
       const reader = new FileReader();
@@ -252,6 +324,47 @@
         const workbook = XLSX.read(data, { type: "array" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet);
+
+        let success = 0, failed = 0;
+        for (const row of rows) {
+          const nama = row.Nama || "";
+          const email = row.Email || "";
+          const password = row.Password || "123456";
+          const kelas = row.Kelas || "";
+          if (!nama || !email || !kelas) { failed++; continue; }
+
+          try {
+            const userCred = await createUserWithEmailAndPassword(auth, email, password);
+            await setDoc(doc(db, "users", userCred.user.uid), { nama, email, kelas, role: "siswa" });
+            success++;
+          } catch {
+            failed++;
+          }
+        }
+        alert(`✅ ${success} siswa berhasil ditambahkan, ❌ ${failed} gagal`);
+        loadSiswa();
+      };
+      reader.readAsArrayBuffer(fileInput.files[0]);
+    };
+
+    // ====== Upload Soal ======
+    window.uploadSoal = function() {
+      const fileInput = document.getElementById("fileInput");
+      const kelas = document.getElementById("kelasInput").value.trim();
+      const mapel = document.getElementById("mapelInput").value.trim();
+
+      if (!fileInput.files[0] || !kelas || !mapel) {
+        alert("⚠️ Lengkapi file, kelas, dan mapel!");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+
         const soal = rows.map(row => ({
           Pertanyaan: row.Pertanyaan || row.soal || "",
           A: row.A || "",
@@ -261,6 +374,7 @@
           E: row.E || "",
           JawabanBenar: row.JawabanBenar || row.kunci || ""
         }));
+
         try {
           await setDoc(doc(db, "soal", `${kelas}_${mapel}`), { soal, aktif: false });
           alert("✅ Soal berhasil diupload");
@@ -273,5 +387,4 @@
     };
   </script>
 </body>
-      </html>
-                             
+</html>
