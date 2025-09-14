@@ -120,8 +120,23 @@
     // ✅ Fungsi ekspor Excel
     window.exportExcel = function() {
       const table = document.getElementById("hasilTable");
-      const wb = XLSX.utils.table_to_book(table, {sheet:"Hasil Ujian"});
-      XLSX.writeFile(wb, "hasil_ujian.xlsx");
+
+      // ambil kelas & mapel dari input
+      const kelas = document.getElementById("kelasInput").value.trim() || "kelas";
+      const mapel = document.getElementById("mapelInput").value.trim() || "mapel";
+
+      // ambil tanggal hari ini (format YYYY-MM-DD)
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      const tanggal = `${yyyy}-${mm}-${dd}`;
+
+      // nama file akhir
+      const fileName = `hasil_${kelas}_${mapel}_${tanggal}.xlsx`;
+
+      const wb = XLSX.utils.table_to_book(table, { sheet: "Hasil Ujian" });
+      XLSX.writeFile(wb, fileName);
     };
   </script>
 </body>
