@@ -31,6 +31,7 @@
     <input type="text" id="kelasInput" placeholder="Kelas (misal: kelas10)">
     <input type="text" id="mapelInput" placeholder="Mapel (misal: matematika)">
     <button onclick="loadHasil()">Tampilkan Hasil</button>
+    <button onclick="exportExcel()" style="background:green;">⬇️ Ekspor Excel</button>
   </div>
 
   <table id="hasilTable">
@@ -45,6 +46,9 @@
     </thead>
     <tbody></tbody>
   </table>
+
+  <!-- Tambahkan library SheetJS -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
@@ -95,10 +99,9 @@
           let poin = 0;
           if (kunci.length > 0 && data.answers) {
             Object.keys(data.answers).forEach(i => {
-            const jawabanSiswa = (data.answers[i] || "").toUpperCase();
-const jawabanBenar = (kunci[i] || "").toUpperCase();
-if (jawabanSiswa === jawabanBenar) poin++;
-              
+              const jawabanSiswa = (data.answers[i] || "").toUpperCase();
+              const jawabanBenar = (kunci[i] || "").toUpperCase();
+              if (jawabanSiswa === jawabanBenar) poin++;
             });
           }
           const tr = document.createElement("tr");
@@ -112,6 +115,13 @@ if (jawabanSiswa === jawabanBenar) poin++;
           tbody.appendChild(tr);
         }
       });
+    };
+
+    // ✅ Fungsi ekspor Excel
+    window.exportExcel = function() {
+      const table = document.getElementById("hasilTable");
+      const wb = XLSX.utils.table_to_book(table, {sheet:"Hasil Ujian"});
+      XLSX.writeFile(wb, "hasil_ujian.xlsx");
     };
   </script>
 </body>
