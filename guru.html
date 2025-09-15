@@ -70,6 +70,11 @@
       <input type="text" id="kelasSiswa" placeholder="Kelas (misal: kelas10)" />
       <button onclick="tambahSiswa()">Tambah</button>
 
+      <h4>Upload Siswa via Excel</h4>
+<input type="file" id="fileSiswaExcel" accept=".xlsx,.xls" />
+<button onclick="importSiswaExcel()">Upload Excel</button>
+      
+
       <h3>Daftar Siswa</h3>
       <table id="siswaTable">
         <thead><tr><th>Nama</th><th>Email</th><th>Kelas</th><th>Aksi</th></tr></thead>
@@ -139,6 +144,42 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+    // === Fungsi Upload Siswa via Excel ===
+window.importSiswaExcel = function() {
+  const fileInput = document.getElementById("fileSiswaExcel");
+  if (!fileInput.files[0]) { 
+    alert("Pilih file Excel terlebih dahulu!"); 
+    return; 
+  }
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: "array" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet);
+
+    for (const row of rows) {
+      const nama = row.Nama || "";
+      const email = row.Email || "";
+      const password = row.Password || "12345678"; // default kalau kosong
+      const kelas = row.Kelas || "";
+
+      if (!nama || !email || !kelas) continue; // skip kalau ada kolom kosong
+
+      try {
+        const userCred = await createUserWithEmailAndPassword(auth, email, password);
+        await setDoc(doc(db, "users", userCred.user.uid), { 
+          nama, email, kelas, role:"siswa" 
+        });
+      } catch (err) {
+        console.error("Gagal tambah siswa:", err.message);
+      }
+    }
+    alert("✅ Import siswa selesai");
+    loadSiswa(); // refresh tabel siswa
+  };
+  reader.readAsArrayBuffer(fileInput.files[0]);
+};
 
     let soalAktifId = null;
     let siswaKelas = []; 
