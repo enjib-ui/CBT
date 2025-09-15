@@ -2,10 +2,9 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Guru - Modern</title>
+  <title>Dashboard Guru</title>
   <style>
-    body { margin:0; font-family:'Segoe UI',Tahoma,Verdana,sans-serif; background:#f4f6f9; }
+    body { margin:0; font-family:'Segoe UI',Tahoma,sans-serif; background:#f4f6f9; }
     .sidebar { position:fixed; left:0; top:0; bottom:0; width:220px; background:#2c3e50; color:white; padding:20px; }
     .sidebar h2 { text-align:center; margin-bottom:30px; }
     .sidebar ul { list-style:none; padding:0; }
@@ -81,9 +80,7 @@
     <section id="logs" class="card" style="display:none;">
       <h3>Log Pelanggaran</h3>
       <label>Filter Kelas:</label>
-      <select id="kelasFilter" onchange="loadLogs()">
-        <option value="">Semua</option>
-      </select>
+      <select id="kelasFilter" onchange="loadLogs()"><option value="">Semua</option></select>
       <button class="danger" onclick="hapusLogs()">Hapus Log Kelas</button>
       <table id="logsTable">
         <thead><tr><th>Nama</th><th>Kelas</th><th>Alasan</th><th>Waktu</th></tr></thead>
@@ -93,7 +90,7 @@
   </div>
 
   <!-- Popup Aktivasi Soal -->
-  <div id="popup" class="popup">
+  <div id="popupSoal" class="popup">
     <div class="popup-content">
       <h3>Atur Jadwal Soal</h3>
       <label>Jam Mulai:</label><br>
@@ -106,7 +103,24 @@
       <div id="siswaChecklist" class="siswa-list"></div>
       <br>
       <button onclick="simpanAktif()">Simpan</button>
-      <button class="danger" onclick="closePopup()">Batal</button>
+      <button class="danger" onclick="closePopup('popupSoal')">Batal</button>
+    </div>
+  </div>
+
+  <!-- Popup Edit Siswa -->
+  <div id="popupEdit" class="popup">
+    <div class="popup-content">
+      <h3>Edit Siswa</h3>
+      <input type="hidden" id="editUid">
+      <label>Nama:</label>
+      <input type="text" id="editNama"><br>
+      <label>Email:</label>
+      <input type="email" id="editEmail"><br>
+      <label>Kelas:</label>
+      <input type="text" id="editKelas"><br>
+      <br>
+      <button onclick="simpanEditSiswa()">Simpan</button>
+      <button class="danger" onclick="closePopup('popupEdit')">Batal</button>
     </div>
   </div>
 
@@ -130,12 +144,11 @@
     const db = getFirestore(app);
 
     let soalAktifId = null;
+    let siswaKelas = [];
+    let currentKelas = "";
 
-    window.logout = async function() {
-      await signOut(auth);
-      window.location.href = "index.html";
-    };
-
+    // ===== Navigation =====
+    window.logout = async function() { await signOut(auth); window.location.href = "index.html"; };
     window.showPage = function(page) {
       document.querySelectorAll('.content section').forEach(sec => sec.style.display = "none");
       document.getElementById(page).style.display = "block";
@@ -144,14 +157,14 @@
       if(page === 'logs') loadLogs();
     };
 
-    // ====== Kelola Soal ======
+    // ===== Kelola Soal =====
     async function loadSoal() {
       const tbody = document.querySelector("#soalTable tbody");
       tbody.innerHTML = "";
       const snapshot = await getDocs(collection(db, "soal"));
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
-        const row = `<tr>
+        tbody.innerHTML += `<tr>
           <td>${docSnap.id}</td>
           <td>${data.aktif ? "Aktif" : "Nonaktif"}</td>
           <td>
@@ -161,35 +174,32 @@
             <button class="danger" onclick="hapusSoal('${docSnap.id}')">Hapus</button>
           </td>
         </tr>`;
-        tbody.innerHTML += row;
       });
     }
 
     window.bukaPopup = async function(docId) {
       soalAktifId = docId;
-      const kelas = docId.split("_")[0];
-      const siswaSnap = await getDocs(collection(db, "users"));
+      currentKelas = docId.split("_")[0];
+      siswaKelas = [];
       let html = "";
+      const siswaSnap = await getDocs(collection(db, "users"));
       siswaSnap.forEach(s => {
-        const d = s.data();
-        if (d.role === "siswa" && d.kelas === kelas) {
-          html += `<label><input type="checkbox" value="${s.id}"> ${d.nama}</label>`;
+        const data = s.data();
+        if (data.role === "siswa" && data.kelas === currentKelas) {
+          siswaKelas.push({ uid: s.id, nama: data.nama });
+          html += `<label><input type="checkbox" value="${s.id}"> ${data.nama}</label>`;
         }
       });
-      document.getElementById("siswaChecklist").innerHTML = html || "<p>Tidak ada siswa di kelas ini</p>";
-      document.getElementById("popup").style.display = "flex";
+      document.getElementById("siswaChecklist").innerHTML = html || "<p>Tidak ada siswa</p>";
+      document.getElementById("popupSoal").style.display = "flex";
     };
 
-    window.closePopup = function() {
-      document.getElementById("popup").style.display = "none";
-    };
-
+    window.closePopup = function(id) { document.getElementById(id).style.display = "none"; };
     window.toggleAllSiswa = function() {
       const checkboxes = document.querySelectorAll("#siswaChecklist input[type=checkbox]");
       const allChecked = Array.from(checkboxes).every(cb => cb.checked);
       checkboxes.forEach(cb => cb.checked = !allChecked);
     };
-
     window.simpanAktif = async function() {
       const jamMulai = document.getElementById("jamMulai").value;
       const durasi = parseInt(document.getElementById("durasi").value);
@@ -197,22 +207,12 @@
       const selected = Array.from(document.querySelectorAll("#siswaChecklist input:checked")).map(cb => cb.value);
       if (selected.length === 0) { alert("Pilih minimal 1 siswa!"); return; }
       await setDoc(doc(db, "soal", soalAktifId), { aktif:true, jamMulai, durasi, allowedUsers: selected }, { merge:true });
-      closePopup();
-      loadSoal();
+      closePopup('popupSoal'); loadSoal();
     };
+    window.nonaktifkanSoal = async function(docId) { await setDoc(doc(db, "soal", docId), { aktif:false }, { merge:true }); loadSoal(); };
+    window.hapusSoal = async function(docId) { if (confirm(`Hapus soal ${docId}?`)) { await deleteDoc(doc(db, "soal", docId)); loadSoal(); } };
 
-    window.nonaktifkanSoal = async function(docId) {
-      await setDoc(doc(db, "soal", docId), { aktif:false }, { merge:true });
-      loadSoal();
-    };
-
-    window.hapusSoal = async function(docId) {
-      if (!confirm(`Hapus soal ${docId}?`)) return;
-      await deleteDoc(doc(db, "soal", docId));
-      loadSoal();
-    };
-
-    // ====== Kelola Siswa ======
+    // ===== Kelola Siswa =====
     window.tambahSiswa = async function() {
       const nama = document.getElementById("namaSiswa").value.trim();
       const email = document.getElementById("emailSiswa").value.trim();
@@ -222,8 +222,7 @@
       try {
         const userCred = await createUserWithEmailAndPassword(auth, email, password);
         await setDoc(doc(db, "users", userCred.user.uid), { nama, email, kelas, role:"siswa" });
-        alert("✅ Siswa ditambahkan");
-        loadSiswa();
+        alert("✅ Siswa ditambahkan"); loadSiswa();
       } catch (err) { alert("❌ Gagal: " + err.message); }
     };
 
@@ -234,42 +233,49 @@
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
         if (data.role === "siswa") {
-          const row = `<tr>
-            <td contenteditable onblur="updateSiswa('${docSnap.id}', 'nama', this.innerText)">${data.nama}</td>
-            <td contenteditable onblur="updateSiswa('${docSnap.id}', 'email', this.innerText)">${data.email}</td>
-            <td contenteditable onblur="updateSiswa('${docSnap.id}', 'kelas', this.innerText)">${data.kelas}</td>
-            <td><button class="danger" onclick="hapusSiswa('${docSnap.id}')">Hapus</button></td>
+          tbody.innerHTML += `<tr>
+            <td>${data.nama}</td>
+            <td>${data.email}</td>
+            <td>${data.kelas}</td>
+            <td>
+              <button onclick="editSiswa('${docSnap.id}','${data.nama}','${data.email}','${data.kelas}')">Edit</button>
+              <button class="danger" onclick="hapusSiswa('${docSnap.id}')">Hapus</button>
+            </td>
           </tr>`;
-          tbody.innerHTML += row;
         }
       });
     }
 
-    window.updateSiswa = async function(uid, field, value) {
-      await updateDoc(doc(db, "users", uid), { [field]: value });
+    window.editSiswa = function(uid, nama, email, kelas) {
+      document.getElementById("editUid").value = uid;
+      document.getElementById("editNama").value = nama;
+      document.getElementById("editEmail").value = email;
+      document.getElementById("editKelas").value = kelas;
+      document.getElementById("popupEdit").style.display = "flex";
     };
 
-    window.hapusSiswa = async function(uid) {
-      if (!confirm("Yakin hapus siswa ini?")) return;
-      await deleteDoc(doc(db, "users", uid));
-      loadSiswa();
+    window.simpanEditSiswa = async function() {
+      const uid = document.getElementById("editUid").value;
+      const nama = document.getElementById("editNama").value.trim();
+      const email = document.getElementById("editEmail").value.trim();
+      const kelas = document.getElementById("editKelas").value.trim();
+      await updateDoc(doc(db, "users", uid), { nama, email, kelas });
+      closePopup('popupEdit'); loadSiswa();
     };
 
-    // ====== Log Pelanggaran ======
+    window.hapusSiswa = async function(uid) { if (confirm("Hapus siswa ini?")) { await deleteDoc(doc(db, "users", uid)); loadSiswa(); } };
+
+    // ===== Log Pelanggaran =====
     async function loadLogs() {
       const tbody = document.querySelector("#logsTable tbody");
-      const filter = document.getElementById("kelasFilter").value;
       tbody.innerHTML = "";
-
+      const filter = document.getElementById("kelasFilter").value;
       const snapshot = await getDocs(collection(db, "cheatingLogs"));
       for (const log of snapshot.docs) {
         const data = log.data();
         let nama = data.uid, kelas = "-";
         const userDoc = await getDoc(doc(db, "users", data.uid));
-        if (userDoc.exists()) {
-          nama = userDoc.data().nama;
-          kelas = userDoc.data().kelas;
-        }
+        if (userDoc.exists()) { nama = userDoc.data().nama; kelas = userDoc.data().kelas; }
         if (!filter || kelas === filter) {
           tbody.innerHTML += `<tr>
             <td>${nama}</td>
@@ -279,7 +285,7 @@
           </tr>`;
         }
       }
-
+      // isi dropdown filter kelas
       const kelasSet = new Set();
       const usersSnap = await getDocs(collection(db, "users"));
       usersSnap.forEach(u => { if (u.data().kelas) kelasSet.add(u.data().kelas); });
@@ -290,7 +296,7 @@
 
     window.hapusLogs = async function() {
       const filter = document.getElementById("kelasFilter").value;
-      if (!filter) { alert("Pilih kelas dulu untuk hapus log!"); return; }
+      if (!filter) { alert("Pilih kelas dulu!"); return; }
       if (!confirm(`Hapus semua log kelas ${filter}?`)) return;
       const snapshot = await getDocs(collection(db, "cheatingLogs"));
       for (const log of snapshot.docs) {
@@ -303,7 +309,7 @@
       loadLogs();
     };
 
-    // ====== Upload Soal ======
+    // ===== Upload Soal =====
     window.uploadSoal = function() {
       const fileInput = document.getElementById("fileInput");
       const kelas = document.getElementById("kelasInput").value.trim();
@@ -313,7 +319,7 @@
       reader.onload = async function(e) {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const sheet = workbook.Sheets[workbook.Sheet[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet);
         const soal = rows.map(row => ({
           Pertanyaan: row.Pertanyaan || row.soal || "",
@@ -331,3 +337,4 @@
   </script>
 </body>
 </html>
+        
