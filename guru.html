@@ -37,6 +37,7 @@
       <li onclick="showPage('siswa')">👩‍🎓 Kelola Siswa</li>
       <li onclick="showPage('logs')">📋 Log Pelanggaran</li>
       <li onclick="window.location.href='hasil.html'">📊 Hasil Ujian</li>
+      <li onclick="showPage('monitor')">🖥️ Monitoring Ujian</li>
       <li onclick="logout()">🚪 Logout</li>
     </ul>
   </div>
@@ -89,6 +90,21 @@
         <tbody></tbody>
       </table>
     </section>
+    <!-- Monitoring Aktivitas Siswa -->
+    <section id="monitor" class="card" style="display:none;">
+      <h3>Monitoring Aktivitas Siswa</h3>
+      <table id="monitorTable">
+    <thead>
+      <tr>
+        <th>Nama</th>
+        <th>Kelas</th>
+        <th>Soal</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
   </div>
 
   <!-- Popup Aktivasi Soal -->
@@ -143,6 +159,7 @@
       if(page === 'soal') loadSoal();
       if(page === 'siswa') loadSiswa();
       if(page === 'logs') loadLogs();
+      if(page === 'monitor') loadMonitor();
     };
 
     // ====== Kelola Soal ======
@@ -301,6 +318,42 @@
       }
       loadLogs();
     };
+    async function loadMonitor() {
+  const tbody = document.querySelector("#monitorTable tbody");
+  tbody.innerHTML = "";
+
+  const siswaSnap = await getDocs(collection(db, "users"));
+  const soalSnap = await getDocs(collection(db, "soal"));
+
+  for (const s of siswaSnap.docs) {
+    const dataS = s.data();
+    if (dataS.role !== "siswa") continue;
+
+    // cek soal aktif untuk kelas siswa
+    const soal = soalSnap.docs.find(doc => doc.id.startsWith(dataS.kelas) && doc.data().aktif);
+    if (!soal) continue;
+
+    const soalData = soal.data();
+    const jawabanDoc = await getDoc(doc(db, "jawaban", s.id));
+
+    let status = "Belum Login";
+    if (jawabanDoc.exists()) {
+      const j = jawabanDoc.data();
+      if (j.submitted) status = "Selesai";
+      else if (j.answers && Object.keys(j.answers).length > 0) status = "Sedang Mengerjakan";
+      else status = "Sudah Login";
+    }
+
+    tbody.innerHTML += `
+      <tr>
+        <td>${dataS.nama}</td>
+        <td>${dataS.kelas}</td>
+        <td>${soal.id}</td>
+        <td>${status}</td>
+      </tr>`;
+  }
+    }
+    
 
     // ====== Upload Soal ======
     window.uploadSoal = function() {
