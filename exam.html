@@ -4,6 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Exam CBT</title>
+
+  <!-- 🟢 PWA Meta Tag (agar di iOS kalau Add to Home Screen bisa fullscreen) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+
   <style>
     body { margin:0; font-family: Arial, sans-serif; background:#f9f9f9; }
     header { background:#3498db; color:white; padding:12px;
@@ -54,6 +60,9 @@
     </div>
   </div>
 
+  <!-- 🎥 Video dummy untuk iOS Safari supaya bisa requestFullscreen -->
+  <video id="fsVideo" playsinline muted style="display:none;width:0;height:0;"></video>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
@@ -79,6 +88,46 @@
     let soalFound = null;
     let soalFoundId = null;
 
+    // ==============
+    // Fullscreen util
+    // ==============
+    function isiOS() {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent);
+    }
+
+    window.startFullscreen = function() {
+      if (isiOS()) {
+        // trik pakai video dummy
+        const video = document.getElementById("fsVideo");
+        if (video.requestFullscreen) video.requestFullscreen();
+        else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();
+      } else {
+        const el = document.documentElement;
+        if (el.requestFullscreen) el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+        else if (el.msRequestFullscreen) el.msRequestFullscreen();
+      }
+
+      // coba lock orientation (hanya Android Chrome)
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock("landscape").catch(()=>{});
+      }
+    };
+
+    // listen perubahan fullscreen
+    document.addEventListener("fullscreenchange", () => {
+      const btnFS = document.getElementById("fullscreenBtn");
+      if (!document.fullscreenElement) {
+        logCheating("Keluar fullscreen");
+        btnFS.style.display = "block";
+      } else {
+        btnFS.style.display = "none";
+      }
+    });
+
+    // ==========================
+    // Exam logic (dari versi lama)
+    // ==========================
     onAuthStateChanged(auth, async (user) => {
       if (!user) { window.location.href = "index.html"; return; }
       const userDoc = await getDoc(doc(db, "users", user.uid));
@@ -249,29 +298,11 @@
       window.location.href = "index.html";
     };
 
-    // =====================
-    // Fullscreen + Anti-cheat
-    // =====================
-    function startFullscreen() {
-      const el = document.documentElement;
-      if (el.requestFullscreen) {
-        el.requestFullscreen();
-      } else if (el.webkitRequestFullscreen) { // Safari/Chrome lama
-        el.webkitRequestFullscreen();
-      } else if (el.msRequestFullscreen) { // IE/Edge lama
-        el.msRequestFullscreen();
-      }
+    async function logCheating(reason) {
+      const user = auth.currentUser;
+      if (!user) return;
+      await addDoc(collection(db, "cheatingLogs"), { uid: user.uid, reason, time: new Date() });
     }
-
-    document.addEventListener("fullscreenchange", () => {
-      const btnFS = document.getElementById("fullscreenBtn");
-      if (!document.fullscreenElement) {
-        logCheating("Keluar fullscreen");
-        btnFS.style.display = "block"; // tampilkan tombol kembali
-      } else {
-        btnFS.style.display = "none"; // sembunyikan kalau sudah fullscreen
-      }
-    });
 
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) logCheating("Pindah tab/minimize");
@@ -280,17 +311,6 @@
     document.addEventListener("copy", e => e.preventDefault());
     document.addEventListener("cut", e => e.preventDefault());
     document.addEventListener("paste", e => e.preventDefault());
-
-    async function logCheating(reason) {
-      const user = auth.currentUser;
-      if (!user) return;
-      await addDoc(collection(db, "cheatingLogs"), { uid: user.uid, reason, time: new Date() });
-    }
-
-    window.addEventListener("focus", async () => {
-      const user = auth.currentUser;
-      if (user) await setDoc(doc(db, "jawaban", user.uid), { lastActivity:new Date() }, { merge:true });
-    });
   </script>
 </body>
 </html>
