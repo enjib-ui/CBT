@@ -134,6 +134,11 @@
       renderNav();
       startTimer();
       startFullscreen();
+      
+      const user = auth.currentUser;
+  if (user) {
+    await setDoc(doc(db, "jawaban", user.uid), { started:true, submitted:false }, { merge:true });
+  }
     };
 
     function startTimer() {
@@ -207,7 +212,11 @@
       document.getElementById("submitBtn").disabled = true;
       document.getElementById("submitMsg").innerText = "✅ Jawaban berhasil dikirim!";
       clearInterval(timerInterval);
-      logout();
+      const user = auth.currentUser;
+  if (user) {
+    await setDoc(doc(db, "jawaban", user.uid), { submitted:true, finishedAt:new Date() }, { merge:true });
+  }
+  logout();
     };
 
     window.logout = async function() {
