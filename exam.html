@@ -62,7 +62,7 @@
       <div id="navQ"></div>
       <button id="submitBtn" onclick="submitExam()">Kirim Jawaban</button>
       <p id="submitMsg" style="color:green;font-weight:bold"></p>
-      <!-- Tombol fullscreen hanya Android -->
+      <!-- Tombol fullscreen (Android) -->
       <button id="fullscreenBtn" onclick="startFullscreen()">⛶ Kembali ke Fullscreen</button>
       <!-- Pesan khusus iOS -->
       <p id="iosMsg">📱 Untuk fullscreen di iPhone/iPad, silakan <br>“Add to Home Screen” dari Safari</p>
@@ -94,27 +94,17 @@
     let soalFound = null;
     let soalFoundId = null;
 
-    function isiOS() {
-      return /iPad|iPhone|iPod/.test(navigator.userAgent);
-    }
-
-    function isAndroid() {
-      return /Android/.test(navigator.userAgent);
-    }
+    function isiOS() { return /iPad|iPhone|iPod/.test(navigator.userAgent); }
+    function isAndroid() { return /Android/.test(navigator.userAgent); }
 
     // =====================
-    // Fullscreen utils
+    // Fullscreen utils (portrait only)
     // =====================
     window.startFullscreen = function() {
       const el = document.documentElement;
       if (el.requestFullscreen) el.requestFullscreen();
       else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
       else if (el.msRequestFullscreen) el.msRequestFullscreen();
-
-      // lock orientation (Android only)
-      if (isAndroid() && screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock("landscape").catch(()=>{});
-      }
     };
 
     document.addEventListener("fullscreenchange", () => {
