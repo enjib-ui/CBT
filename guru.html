@@ -5,15 +5,13 @@
   <title>Dashboard Guru - Modern</title>
   <style>
     body { margin:0; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; background:#f4f6f9; }
-    .sidebar { position:fixed; left:0; top:0; bottom:0; width:220px;
-               background:#2c3e50; color:white; padding:20px; }
+    .sidebar { position:fixed; left:0; top:0; bottom:0; width:220px; background:#2c3e50; color:white; padding:20px; }
     .sidebar h2 { text-align:center; margin-bottom:30px; }
     .sidebar ul { list-style:none; padding:0; }
     .sidebar ul li { padding:12px; cursor:pointer; border-radius:6px; margin-bottom:8px; }
     .sidebar ul li:hover { background:#34495e; }
     .content { margin-left:240px; padding:20px; }
-    .card { background:white; padding:20px; border-radius:12px;
-            box-shadow:0 2px 6px rgba(0,0,0,0.1); margin-bottom:20px; }
+    .card { background:white; padding:20px; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,0.1); margin-bottom:20px; }
     h3 { margin-top:0; }
     input, button, select { padding:8px; margin:5px 0; border-radius:6px; border:1px solid #ccc; }
     button { cursor:pointer; background:#3498db; color:white; border:none; }
@@ -23,9 +21,11 @@
     table { width:100%; border-collapse:collapse; margin-top:15px; }
     th, td { border:1px solid #ddd; padding:8px; text-align:center; }
     th { background:#3498db; color:white; }
-    .popup { position:fixed; top:0; left:0; width:100%; height:100%;
-             background:rgba(0,0,0,0.6); display:none; justify-content:center; align-items:center; }
-    .popup-content { background:white; padding:20px; border-radius:12px; width:300px; text-align:center; }
+    .popup { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:none; justify-content:center; align-items:center; }
+    .popup-content { background:white; padding:20px; border-radius:12px; width:400px; max-height:90%; overflow-y:auto; }
+    .popup-content h3 { margin-top:0; }
+    .siswa-list { text-align:left; margin-top:10px; }
+    .siswa-list label { display:block; margin:4px 0; }
   </style>
 </head>
 <body>
@@ -69,11 +69,6 @@
       <input type="text" id="kelasSiswa" placeholder="Kelas (misal: kelas10)" />
       <button onclick="tambahSiswa()">Tambah</button>
 
-      <h3>Upload Siswa via Excel</h3>
-      <input type="file" id="fileSiswa" />
-      <button onclick="uploadSiswaExcel()">Upload Excel</button>
-      <p style="font-size:13px;color:#555;">Format: <b>Nama</b>, <b>Email</b>, <b>Password</b>, <b>Kelas</b></p>
-
       <h3>Daftar Siswa</h3>
       <table id="siswaTable">
         <thead><tr><th>Nama</th><th>Email</th><th>Kelas</th><th>Aksi</th></tr></thead>
@@ -90,7 +85,7 @@
       </select>
       <button class="danger" onclick="hapusLogs()">Hapus Log Kelas</button>
       <table id="logsTable">
-        <thead><tr><th>Email</th><th>Kelas</th><th>Alasan</th><th>Waktu</th></tr></thead>
+        <thead><tr><th>Nama</th><th>Kelas</th><th>Alasan</th><th>Waktu</th></tr></thead>
         <tbody></tbody>
       </table>
     </section>
@@ -103,7 +98,12 @@
       <label>Jam Mulai:</label><br>
       <input type="time" id="jamMulai"><br>
       <label>Durasi (menit):</label><br>
-      <input type="number" id="durasi" min="1" value="30"><br><br>
+      <input type="number" id="durasi" min="1" value="30"><br>
+      <hr>
+      <h4>Pilih Siswa</h4>
+      <button onclick="toggleAllSiswa()">Pilih Semua / Batal Semua</button>
+      <div id="siswaChecklist" class="siswa-list"></div>
+      <br>
       <button onclick="simpanAktif()">Simpan</button>
       <button class="danger" onclick="closePopup()">Batal</button>
     </div>
@@ -111,7 +111,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-    import { getAuth, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+    import { getAuth, signOut, createUserWithEmailAndPassword, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
     import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
     import * as XLSX from "https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs";
 
@@ -129,6 +129,8 @@
     const db = getFirestore(app);
 
     let soalAktifId = null;
+    let siswaKelas = []; // simpan daftar siswa sesuai kelas soal
+    let currentKelas = "";
 
     window.logout = async function() {
       await signOut(auth);
@@ -164,8 +166,20 @@
       });
     }
 
-    window.bukaPopup = function(docId) {
+    window.bukaPopup = async function(docId) {
       soalAktifId = docId;
+      currentKelas = docId.split("_")[0]; // ambil kelas dari id soal
+      siswaKelas = [];
+      const siswaSnap = await getDocs(collection(db, "users"));
+      let html = "";
+      siswaSnap.forEach(s => {
+        const data = s.data();
+        if (data.role === "siswa" && data.kelas === currentKelas) {
+          siswaKelas.push({ uid: s.id, nama: data.nama });
+          html += `<label><input type="checkbox" value="${s.id}"> ${data.nama}</label>`;
+        }
+      });
+      document.getElementById("siswaChecklist").innerHTML = html || "<p>Tidak ada siswa di kelas ini</p>";
       document.getElementById("popup").style.display = "flex";
     };
 
@@ -173,11 +187,19 @@
       document.getElementById("popup").style.display = "none";
     };
 
+    window.toggleAllSiswa = function() {
+      const checkboxes = document.querySelectorAll("#siswaChecklist input[type=checkbox]");
+      const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+      checkboxes.forEach(cb => cb.checked = !allChecked);
+    };
+
     window.simpanAktif = async function() {
       const jamMulai = document.getElementById("jamMulai").value;
       const durasi = parseInt(document.getElementById("durasi").value);
       if (!jamMulai || !durasi) { alert("Lengkapi jam mulai dan durasi!"); return; }
-      await setDoc(doc(db, "soal", soalAktifId), { aktif:true, jamMulai, durasi }, { merge:true });
+      const selected = Array.from(document.querySelectorAll("#siswaChecklist input:checked")).map(cb => cb.value);
+      if (selected.length === 0) { alert("Pilih minimal 1 siswa!"); return; }
+      await setDoc(doc(db, "soal", soalAktifId), { aktif:true, jamMulai, durasi, allowedUsers: selected }, { merge:true });
       closePopup();
       loadSoal();
     };
@@ -219,22 +241,17 @@
             <td>${data.nama}</td>
             <td>${data.email}</td>
             <td>${data.kelas}</td>
-            <td><button class="danger" onclick="hapusSiswa('${docSnap.id}', '${data.nama}')">Hapus</button></td>
+            <td><button class="danger" onclick="hapusSiswa('${docSnap.id}')">Hapus</button></td>
           </tr>`;
           tbody.innerHTML += row;
         }
       });
     }
 
-    window.hapusSiswa = async function(uid, nama) {
-      if (!confirm(`Hapus siswa ${nama}?`)) return;
-      try {
-        await deleteDoc(doc(db, "users", uid));
-        alert(`✅ Siswa ${nama} berhasil dihapus`);
-        loadSiswa();
-      } catch (err) {
-        alert("❌ Gagal hapus: " + err.message);
-      }
+    window.hapusSiswa = async function(uid) {
+      if (!confirm("Yakin hapus siswa ini?")) return;
+      await deleteDoc(doc(db, "users", uid));
+      loadSiswa();
     };
 
     // ====== Log Pelanggaran ======
@@ -246,15 +263,15 @@
       const snapshot = await getDocs(collection(db, "cheatingLogs"));
       for (const log of snapshot.docs) {
         const data = log.data();
-        let email = data.uid, kelas = "-";
+        let nama = data.uid, kelas = "-";
         const userDoc = await getDoc(doc(db, "users", data.uid));
         if (userDoc.exists()) {
-          email = userDoc.data().email;
+          nama = userDoc.data().nama;
           kelas = userDoc.data().kelas;
         }
         if (!filter || kelas === filter) {
           tbody.innerHTML += `<tr>
-            <td>${email}</td>
+            <td>${nama}</td>
             <td>${kelas}</td>
             <td>${data.reason}</td>
             <td>${new Date(data.time.seconds * 1000).toLocaleString()}</td>
@@ -262,7 +279,6 @@
         }
       }
 
-      // isi dropdown kelas
       const kelasSet = new Set();
       const usersSnap = await getDocs(collection(db, "users"));
       usersSnap.forEach(u => { if (u.data().kelas) kelasSet.add(u.data().kelas); });
@@ -284,40 +300,6 @@
         }
       }
       loadLogs();
-    };
-
-    // ====== Upload Siswa via Excel ======
-    window.uploadSiswaExcel = function() {
-      const fileInput = document.getElementById("fileSiswa");
-      if (!fileInput.files[0]) { alert("⚠️ Pilih file Excel siswa terlebih dahulu!"); return; }
-      const reader = new FileReader();
-      reader.onload = async function(e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(sheet);
-
-        let success = 0, failed = 0;
-        for (const row of rows) {
-          const nama = row.Nama || "";
-          const email = row.Email || "";
-          const password = row.Password || "123456";
-          const kelas = row.Kelas || "";
-          if (!nama || !email || !kelas) { failed++; continue; }
-
-          try {
-            const userCred = await createUserWithEmailAndPassword(auth, email, password);
-            await setDoc(doc(db, "users", userCred.user.uid), { nama, email, kelas, role: "siswa" });
-            success++;
-          } catch (err) {
-            console.error("Gagal tambah siswa:", err.message);
-            failed++;
-          }
-        }
-        alert(`✅ ${success} siswa berhasil ditambahkan, ❌ ${failed} gagal`);
-        loadSiswa();
-      };
-      reader.readAsArrayBuffer(fileInput.files[0]);
     };
 
     // ====== Upload Soal ======
@@ -347,5 +329,5 @@
     };
   </script>
 </body>
-    </html>
+  </html>
   
