@@ -145,7 +145,7 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
     
-    // === Import Siswa via Excel ===
+    // === Import Siswa via Excel (fix header fleksibel + debug) ===
 window.importSiswaExcel = function() {
   const fileInput = document.getElementById("fileSiswaExcel");
   if (!fileInput.files[0]) { 
@@ -158,25 +158,43 @@ window.importSiswaExcel = function() {
     const data = new Uint8Array(e.target.result);
     const workbook = XLSX.read(data, { type: "array" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(sheet);
 
-    for (const row of rows) {
-      const nama = row.Nama || "";
-      const email = row.Email || "";
-      const password = row.Password || "12345678";
-      const kelas = row.Kelas || "";
+    // Ambil sheet jadi array 2D (baris pertama = header)
+    const rows = XLSX.utils.sheet_to_json(sheet, { header:1 });
+    console.log("📂 Isi Excel mentah:", rows);
+
+    if (rows.length < 2) {
+      alert("❌ File Excel kosong atau tidak ada data!");
+      return;
+    }
+
+    const headers = rows[0].map(h => (h+"").toLowerCase()); // normalisasi lowercase
+    const dataRows = rows.slice(1);
+
+    for (const r of dataRows) {
+      const row = {};
+      headers.forEach((h,i) => row[h] = r[i]);
+      console.log("➡️ Baris dibaca:", row);
+
+      const nama = row["nama"] || "";
+      const email = row["email"] || "";
+      const password = row["password"] || "12345678";
+      const kelas = row["kelas"] || "";
 
       if (!nama || !email || !kelas) {
-        console.warn("⏭ Skip baris karena ada kolom kosong:", row);
+        console.warn("⏭ Skip karena ada data kosong:", row);
         continue;
       }
 
       try {
         const userCred = await createUserWithEmailAndPassword(auth, email, password);
-        await setDoc(doc(db, "users", userCred.user.uid), { nama, email, kelas, role:"siswa" });
-        console.log("✅ Ditambahkan:", nama);
+        await setDoc(doc(db, "users", userCred.user.uid), { 
+          nama, email, kelas, role:"siswa" 
+        });
+        console.log("✅ Ditambahkan:", nama, email, kelas);
       } catch (err) {
         console.error("❌ Gagal import:", email, err.message);
+        alert("❌ Gagal import " + email + ": " + err.message);
       }
     }
 
@@ -185,7 +203,7 @@ window.importSiswaExcel = function() {
   };
   reader.readAsArrayBuffer(fileInput.files[0]);
 };
-    
+        
 
     let soalAktifId = null;
     let siswaKelas = []; 
