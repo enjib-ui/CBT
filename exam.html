@@ -73,31 +73,30 @@
     let soalData = [];
     let current = 0;
     let answers = {};
-    let kelasUser = "";
     let soalStart, soalEnd, timerInterval;
+    let soalFound = null;
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) { window.location.href = "index.html"; return; }
       const userDoc = await getDoc(doc(db, "users", user.uid));
-      if (userDoc.exists()) {
-        kelasUser = userDoc.data().kelas;
-        loadSoal();
-      }
-    });
+      if (!userDoc.exists()) { logout(); return; }
+      const kelasUser = userDoc.data().kelas;
 
-    async function loadSoal() {
+      // cari soal aktif untuk kelas ini
       const snapshot = await getDocs(collection(db, "soal"));
-      let soalFound = null;
-
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
         if (data.aktif && docSnap.id.startsWith(kelasUser)) {
-          soalFound = data;
+          // cek apakah user termasuk allowedUsers
+          if (data.allowedUsers && data.allowedUsers.includes(user.uid)) {
+            soalFound = data;
+          }
         }
       });
 
       if (!soalFound) {
-        document.querySelector(".container").innerHTML = "<p>❌ Tidak ada soal aktif.</p>";
+        document.querySelector(".container").innerHTML =
+          "<p>❌ Tidak ada soal aktif atau Anda tidak terdaftar untuk ujian ini.</p>";
         return;
       }
 
@@ -107,12 +106,8 @@
       soalStart.setHours(jam, menit, 0, 0);
       soalEnd = new Date(soalStart.getTime() + soalFound.durasi * 60000);
 
-      console.log("⏰ Debug", { jamMulai: soalFound.jamMulai, durasi: soalFound.durasi,
-                                start: soalStart.toString(), end: soalEnd.toString(),
-                                now: new Date().toString() });
-
       setInterval(checkStartTime, 1000);
-    }
+    });
 
     function checkStartTime() {
       const now = new Date();
