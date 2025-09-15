@@ -18,11 +18,6 @@
     button:hover { background:#2980b9; }
     .danger { background:#e74c3c; } .danger:hover { background:#c0392b; }
     .secondary { background:#f39c12; } .secondary:hover { background:#d68910; }
-    .upload-btn {
-      display:inline-block; padding:8px 12px; background:#27ae60;
-      color:white; border-radius:6px; cursor:pointer; margin-top:8px;
-    }
-    .upload-btn:hover { background:#219150; }
     table { width:100%; border-collapse:collapse; margin-top:15px; }
     th, td { border:1px solid #ddd; padding:8px; text-align:center; }
     th { background:#3498db; color:white; }
@@ -41,7 +36,7 @@
       <li onclick="showPage('soal')">📚 Kelola Soal</li>
       <li onclick="showPage('siswa')">👩‍🎓 Kelola Siswa</li>
       <li onclick="showPage('logs')">📋 Log Pelanggaran</li>
-      <li onclick="showPage('monitor')">🖥️ Monitoring</li>
+      <li onclick="showPage('monitor')">🖥️ Monitoring Ujian</li>
       <li onclick="window.location.href='hasil.html'">📊 Hasil Ujian</li>
       <li onclick="logout()">🚪 Logout</li>
     </ul>
@@ -71,15 +66,9 @@
       <h3>Tambah Siswa</h3>
       <input type="text" id="namaSiswa" placeholder="Nama Siswa" />
       <input type="email" id="emailSiswa" placeholder="Email" />
-      <input type="password" id="passwordSiswa" placeholder="Password" value="123456" />
+      <input type="password" id="passwordSiswa" placeholder="Password" />
       <input type="text" id="kelasSiswa" placeholder="Kelas (misal: kelas10)" />
       <button onclick="tambahSiswa()">Tambah</button>
-
-      <!-- Tombol Upload Excel -->
-      <label class="upload-btn">
-        📂 Tambah Siswa via Excel
-        <input type="file" id="excelInput" accept=".xlsx" onchange="importSiswaExcel(event)" hidden>
-      </label>
 
       <h3>Daftar Siswa</h3>
       <table id="siswaTable">
@@ -91,6 +80,11 @@
     <!-- Log Pelanggaran -->
     <section id="logs" class="card" style="display:none;">
       <h3>Log Pelanggaran</h3>
+      <label>Filter Kelas:</label>
+      <select id="kelasFilter" onchange="loadLogs()">
+        <option value="">Semua</option>
+      </select>
+      <button class="danger" onclick="hapusLogs()">Hapus Log Kelas</button>
       <table id="logsTable">
         <thead><tr><th>Nama</th><th>Kelas</th><th>Alasan</th><th>Waktu</th></tr></thead>
         <tbody></tbody>
@@ -101,7 +95,9 @@
     <section id="monitor" class="card" style="display:none;">
       <h3>Monitoring Aktivitas Siswa</h3>
       <table id="monitorTable">
-        <thead><tr><th>Nama</th><th>Kelas</th><th>Soal</th><th>Status</th></tr></thead>
+        <thead>
+          <tr><th>Nama</th><th>Kelas</th><th>Soal</th><th>Status</th></tr>
+        </thead>
         <tbody></tbody>
       </table>
     </section>
@@ -127,8 +123,8 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-    import { getAuth, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-    import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    import { getAuth, signOut, createUserWithEmailAndPassword, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+    import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
     import * as XLSX from "https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs";
 
     const firebaseConfig = {
@@ -144,89 +140,268 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // 🔹 Navigasi
-    window.showPage = function(id) {
-      document.querySelectorAll(".card").forEach(s => s.style.display = "none");
-      document.getElementById(id).style.display = "block";
+    let soalAktifId = null;
+    let siswaKelas = []; 
+    let currentKelas = "";
+    let monitorInterval = null;
+
+    window.logout = async function() {
+      await signOut(auth);
+      window.location.href = "index.html";
     };
 
-    // 🔹 Tambah siswa manual
-    window.tambahSiswa = async function() {
-      const nama = document.getElementById("namaSiswa").value;
-      const email = document.getElementById("emailSiswa").value;
-      const password = document.getElementById("passwordSiswa").value || "123456";
-      const kelas = document.getElementById("kelasSiswa").value;
-      if (!nama || !email || !kelas) { alert("Lengkapi data!"); return; }
+    window.showPage = function(page) {
+      document.querySelectorAll('.content section').forEach(sec => sec.style.display = "none");
+      document.getElementById(page).style.display = "block";
+      if(page === 'soal') loadSoal();
+      if(page === 'siswa') loadSiswa();
+      if(page === 'logs') loadLogs();
+      if(page === 'monitor') { loadMonitor(); startMonitorAutoRefresh(); } else { stopMonitorAutoRefresh(); }
+    };
 
+    // ====== Kelola Soal ======
+    async function loadSoal() {
+      const tbody = document.querySelector("#soalTable tbody");
+      tbody.innerHTML = "";
+      const snapshot = await getDocs(collection(db, "soal"));
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const row = `<tr>
+          <td>${docSnap.id}</td>
+          <td>${data.aktif ? "Aktif" : "Nonaktif"}</td>
+          <td>
+            ${data.aktif
+              ? `<button class="secondary" onclick="nonaktifkanSoal('${docSnap.id}')">Nonaktifkan</button>`
+              : `<button onclick="bukaPopup('${docSnap.id}')">Aktifkan</button>`}
+            <button class="danger" onclick="hapusSoal('${docSnap.id}')">Hapus</button>
+          </td>
+        </tr>`;
+        tbody.innerHTML += row;
+      });
+    }
+
+    window.bukaPopup = async function(docId) {
+      soalAktifId = docId;
+      currentKelas = docId.split("_")[0]; 
+      siswaKelas = [];
+      const siswaSnap = await getDocs(collection(db, "users"));
+      let html = "";
+      siswaSnap.forEach(s => {
+        const data = s.data();
+        if (data.role === "siswa" && data.kelas === currentKelas) {
+          siswaKelas.push({ uid: s.id, nama: data.nama });
+          html += `<label><input type="checkbox" value="${s.id}"> ${data.nama}</label>`;
+        }
+      });
+      document.getElementById("siswaChecklist").innerHTML = html || "<p>Tidak ada siswa di kelas ini</p>";
+      document.getElementById("popup").style.display = "flex";
+    };
+
+    window.closePopup = function() { document.getElementById("popup").style.display = "none"; };
+    window.toggleAllSiswa = function() {
+      const checkboxes = document.querySelectorAll("#siswaChecklist input[type=checkbox]");
+      const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+      checkboxes.forEach(cb => cb.checked = !allChecked);
+    };
+
+    window.simpanAktif = async function() {
+      const jamMulai = document.getElementById("jamMulai").value;
+      const durasi = parseInt(document.getElementById("durasi").value);
+      if (!jamMulai || !durasi) { alert("Lengkapi jam mulai dan durasi!"); return; }
+      const selected = Array.from(document.querySelectorAll("#siswaChecklist input:checked")).map(cb => cb.value);
+      if (selected.length === 0) { alert("Pilih minimal 1 siswa!"); return; }
+      await setDoc(doc(db, "soal", soalAktifId), { aktif:true, jamMulai, durasi, allowedUsers: selected }, { merge:true });
+      closePopup();
+      loadSoal();
+    };
+
+    window.nonaktifkanSoal = async function(docId) {
+      await setDoc(doc(db, "soal", docId), { aktif:false }, { merge:true });
+      loadSoal();
+    };
+
+    window.hapusSoal = async function(docId) {
+      if (!confirm(`Hapus soal ${docId}?`)) return;
+      await deleteDoc(doc(db, "soal", docId));
+      loadSoal();
+    };
+
+    // ====== Kelola Siswa ======
+    window.tambahSiswa = async function() {
+      const nama = document.getElementById("namaSiswa").value.trim();
+      const email = document.getElementById("emailSiswa").value.trim();
+      const password = document.getElementById("passwordSiswa").value.trim();
+      const kelas = document.getElementById("kelasSiswa").value.trim();
+      if (!nama || !email || !password || !kelas) { alert("Lengkapi semua data!"); return; }
       try {
         const userCred = await createUserWithEmailAndPassword(auth, email, password);
         await setDoc(doc(db, "users", userCred.user.uid), { nama, email, kelas, role:"siswa" });
-        alert("✅ Siswa berhasil ditambahkan!");
+        alert("✅ Siswa ditambahkan");
         loadSiswa();
-      } catch (err) {
-        alert("❌ " + err.message);
-      }
+      } catch (err) { alert("❌ Gagal: " + err.message); }
     };
 
-    // 🔹 Import siswa via Excel
-    window.importSiswaExcel = async function(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const siswaList = XLSX.utils.sheet_to_json(sheet);
-
-        for (const s of siswaList) {
-          const nama = s.Nama;
-          const email = s.Email;
-          const password = s.Password || "123456";
-          const kelas = s.Kelas;
-          if (!nama || !email || !kelas) continue;
-
-          try {
-            const userCred = await createUserWithEmailAndPassword(auth, email, password);
-            await setDoc(doc(db, "users", userCred.user.uid), { nama, email, kelas, role:"siswa" });
-          } catch (err) {
-            console.error("Gagal tambah siswa:", err.message);
-          }
-        }
-        alert("✅ Data siswa berhasil ditambahkan dari Excel!");
-        loadSiswa();
-      };
-      reader.readAsArrayBuffer(file);
-    };
-
-    // 🔹 Load siswa
     async function loadSiswa() {
       const tbody = document.querySelector("#siswaTable tbody");
       tbody.innerHTML = "";
       const snapshot = await getDocs(collection(db, "users"));
-      snapshot.forEach(d => {
-        const s = d.data();
-        if (s.role === "siswa") {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `<td>${s.nama}</td><td>${s.email}</td><td>${s.kelas}</td>
-            <td><button class="danger" onclick="hapusSiswa('${d.id}')">Hapus</button></td>`;
-          tbody.appendChild(tr);
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.role === "siswa") {
+          const row = `<tr>
+            <td>${data.nama}</td>
+            <td>${data.email}</td>
+            <td>${data.kelas}</td>
+            <td><button class="danger" onclick="hapusSiswa('${docSnap.id}')">Hapus</button></td>
+          </tr>`;
+          tbody.innerHTML += row;
         }
       });
     }
 
-    // 🔹 Hapus siswa
     window.hapusSiswa = async function(uid) {
+      if (!confirm("Yakin hapus siswa ini?")) return;
       await deleteDoc(doc(db, "users", uid));
-      alert("❌ Siswa dihapus");
       loadSiswa();
     };
 
-    // 🔹 Logout
-    window.logout = async function() { await signOut(auth); window.location.href="index.html"; };
+    // ====== Log Pelanggaran ======
+    async function loadLogs() {
+      const tbody = document.querySelector("#logsTable tbody");
+      const filter = document.getElementById("kelasFilter").value;
+      tbody.innerHTML = "";
 
-    loadSiswa();
+      const snapshot = await getDocs(collection(db, "cheatingLogs"));
+      for (const log of snapshot.docs) {
+        const data = log.data();
+        let nama = data.uid, kelas = "-";
+        const userDoc = await getDoc(doc(db, "users", data.uid));
+        if (userDoc.exists()) {
+          nama = userDoc.data().nama;
+          kelas = userDoc.data().kelas;
+        }
+        if (!filter || kelas === filter) {
+          tbody.innerHTML += `<tr>
+            <td>${nama}</td>
+            <td>${kelas}</td>
+            <td>${data.reason}</td>
+            <td>${new Date(data.time.seconds * 1000).toLocaleString()}</td>
+          </tr>`;
+        }
+      }
+
+      const kelasSet = new Set();
+      const usersSnap = await getDocs(collection(db, "users"));
+      usersSnap.forEach(u => { if (u.data().kelas) kelasSet.add(u.data().kelas); });
+      const select = document.getElementById("kelasFilter");
+      select.innerHTML = `<option value="">Semua</option>`;
+      kelasSet.forEach(k => { select.innerHTML += `<option value="${k}">${k}</option>`; });
+    }
+
+    window.hapusLogs = async function() {
+      const filter = document.getElementById("kelasFilter").value;
+      if (!filter) { alert("Pilih kelas dulu untuk hapus log!"); return; }
+      if (!confirm(`Hapus semua log kelas ${filter}?`)) return;
+      const snapshot = await getDocs(collection(db, "cheatingLogs"));
+      for (const log of snapshot.docs) {
+        const data = log.data();
+        const userDoc = await getDoc(doc(db, "users", data.uid));
+        if (userDoc.exists() && userDoc.data().kelas === filter) {
+          await deleteDoc(doc(db, "cheatingLogs", log.id));
+        }
+      }
+      loadLogs();
+    };
+
+    // ====== Monitoring ======
+    async function loadMonitor() {
+      const tbody = document.querySelector("#monitorTable tbody");
+      tbody.innerHTML = "";
+
+      const soalSnap = await getDocs(collection(db, "soal"));
+      const activeSoalByClass = {};
+      soalSnap.forEach(s => {
+        const d = s.data();
+        if (d.aktif) {
+          const kelas = s.id.split("_")[0];
+          activeSoalByClass[kelas] = { id: s.id, data: d };
+        }
+      });
+
+      const siswaSnap = await getDocs(collection(db, "users"));
+      for (const s of siswaSnap.docs) {
+        const ds = s.data();
+        if (ds.role !== "siswa") continue;
+        const kelas = ds.kelas;
+        const soalObj = activeSoalByClass[kelas];
+        const soalLabel = soalObj ? soalObj.id : "-";
+
+        let status = "Tidak ada soal aktif";
+        if (soalObj) {
+          const jawabanDoc = await getDoc(doc(db, "jawaban", s.id));
+          const j = jawabanDoc.exists() ? jawabanDoc.data() : null;
+
+          if (!j || j.soalId !== soalObj.id) status = "Belum Login";
+          else if (j.submitted) status = "Selesai";
+          else if (j.started) {
+            const answered = j.answers ? Object.keys(j.answers).length : 0;
+            const total = soalObj.data.soal ? soalObj.data.soal.length : 0;
+            let lastAct = j.lastActivity;
+            if (lastAct && lastAct.toDate) lastAct = lastAct.toDate();
+            const inactiveMs = lastAct ? (Date.now() - lastAct.getTime()) : null;
+            if (inactiveMs !== null && inactiveMs > 2 * 60 * 1000) {
+              status = `Terhenti (${answered}/${total})`;
+            } else {
+              status = `Sedang Mengerjakan (${answered}/${total})`;
+            }
+          } else if (j.present) status = "Menunggu Mulai";
+          else status = "Terdaftar";
+        }
+
+        tbody.innerHTML += `
+          <tr>
+            <td>${ds.nama}</td>
+            <td>${ds.kelas}</td>
+            <td>${soalLabel}</td>
+            <td>${status}</td>
+          </tr>`;
+      }
+    }
+
+    function startMonitorAutoRefresh() {
+      if (monitorInterval) clearInterval(monitorInterval);
+      monitorInterval = setInterval(loadMonitor, 15000);
+    }
+    function stopMonitorAutoRefresh() {
+      if (monitorInterval) { clearInterval(monitorInterval); monitorInterval = null; }
+    }
+
+    // ====== Upload Soal ======
+    window.uploadSoal = function() {
+      const fileInput = document.getElementById("fileInput");
+      const kelas = document.getElementById("kelasInput").value.trim();
+      const mapel = document.getElementById("mapelInput").value.trim();
+      if (!fileInput.files[0] || !kelas || !mapel) { alert("Lengkapi file, kelas, mapel!"); return; }
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+        const soal = rows.map(row => ({
+          Pertanyaan: row.Pertanyaan || row.soal || "",
+          A: row.A || "", B: row.B || "", C: row.C || "",
+          D: row.D || "", E: row.E || "", JawabanBenar: row.JawabanBenar || row.kunci || ""
+        }));
+        try {
+          await setDoc(doc(db, "soal", `${kelas}_${mapel}`), { soal, aktif:false });
+          alert("✅ Soal berhasil diupload");
+          loadSoal();
+        } catch (err) { alert("❌ Gagal upload: " + err.message); }
+      };
+      reader.readAsArrayBuffer(fileInput.files[0]);
+    };
   </script>
 </body>
-</html>
+  </html>
+  
