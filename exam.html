@@ -118,7 +118,10 @@
 
         // 🔊 mainkan suara beep
         const audio = document.getElementById("alertSound");
-        if (audio) audio.play().catch(()=>{});
+        if (audio) {
+          audio.currentTime = 0;
+          audio.play().catch(()=>{});
+        }
       } else {
         btnFS.style.display = "none";
       }
@@ -200,6 +203,13 @@
       renderQuestion();
       renderNav();
       startTimer();
+
+      // 🔊 trigger izin audio agar bisa diputar nanti
+      const audio = document.getElementById("alertSound");
+      audio.play().then(() => {
+        audio.pause();
+        audio.currentTime = 0;
+      }).catch(()=>{});
 
       if (isAndroid()) startFullscreen();
 
