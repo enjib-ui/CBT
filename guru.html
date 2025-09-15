@@ -76,7 +76,7 @@
 
       <h3>Daftar Siswa</h3>
       <table id="siswaTable">
-        <thead><tr><th>Nama</th><th>Email</th><th>Kelas</th></tr></thead>
+        <thead><tr><th>Nama</th><th>Email</th><th>Kelas</th><th>Aksi</th></tr></thead>
         <tbody></tbody>
       </table>
     </section>
@@ -215,11 +215,27 @@
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
         if (data.role === "siswa") {
-          const row = `<tr><td>${data.nama}</td><td>${data.email}</td><td>${data.kelas}</td></tr>`;
+          const row = `<tr>
+            <td>${data.nama}</td>
+            <td>${data.email}</td>
+            <td>${data.kelas}</td>
+            <td><button class="danger" onclick="hapusSiswa('${docSnap.id}', '${data.nama}')">Hapus</button></td>
+          </tr>`;
           tbody.innerHTML += row;
         }
       });
     }
+
+    window.hapusSiswa = async function(uid, nama) {
+      if (!confirm(`Hapus siswa ${nama}?`)) return;
+      try {
+        await deleteDoc(doc(db, "users", uid));
+        alert(`✅ Siswa ${nama} berhasil dihapus`);
+        loadSiswa();
+      } catch (err) {
+        alert("❌ Gagal hapus: " + err.message);
+      }
+    };
 
     // ====== Log Pelanggaran ======
     async function loadLogs() {
@@ -270,6 +286,40 @@
       loadLogs();
     };
 
+    // ====== Upload Siswa via Excel ======
+    window.uploadSiswaExcel = function() {
+      const fileInput = document.getElementById("fileSiswa");
+      if (!fileInput.files[0]) { alert("⚠️ Pilih file Excel siswa terlebih dahulu!"); return; }
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+
+        let success = 0, failed = 0;
+        for (const row of rows) {
+          const nama = row.Nama || "";
+          const email = row.Email || "";
+          const password = row.Password || "123456";
+          const kelas = row.Kelas || "";
+          if (!nama || !email || !kelas) { failed++; continue; }
+
+          try {
+            const userCred = await createUserWithEmailAndPassword(auth, email, password);
+            await setDoc(doc(db, "users", userCred.user.uid), { nama, email, kelas, role: "siswa" });
+            success++;
+          } catch (err) {
+            console.error("Gagal tambah siswa:", err.message);
+            failed++;
+          }
+        }
+        alert(`✅ ${success} siswa berhasil ditambahkan, ❌ ${failed} gagal`);
+        loadSiswa();
+      };
+      reader.readAsArrayBuffer(fileInput.files[0]);
+    };
+
     // ====== Upload Soal ======
     window.uploadSoal = function() {
       const fileInput = document.getElementById("fileInput");
@@ -297,5 +347,5 @@
     };
   </script>
 </body>
-  </html>
-                                  
+    </html>
+  
