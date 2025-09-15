@@ -36,8 +36,8 @@
       <li onclick="showPage('soal')">📚 Kelola Soal</li>
       <li onclick="showPage('siswa')">👩‍🎓 Kelola Siswa</li>
       <li onclick="showPage('logs')">📋 Log Pelanggaran</li>
-      <li onclick="window.location.href='hasil.html'">📊 Hasil Ujian</li>
       <li onclick="showPage('monitor')">🖥️ Monitoring Ujian</li>
+      <li onclick="window.location.href='hasil.html'">📊 Hasil Ujian</li>
       <li onclick="logout()">🚪 Logout</li>
     </ul>
   </div>
@@ -90,21 +90,17 @@
         <tbody></tbody>
       </table>
     </section>
-    <!-- Monitoring Aktivitas Siswa -->
+
+    <!-- Monitoring -->
     <section id="monitor" class="card" style="display:none;">
       <h3>Monitoring Aktivitas Siswa</h3>
       <table id="monitorTable">
-    <thead>
-      <tr>
-        <th>Nama</th>
-        <th>Kelas</th>
-        <th>Soal</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</section>
+        <thead>
+          <tr><th>Nama</th><th>Kelas</th><th>Soal</th><th>Status</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
   </div>
 
   <!-- Popup Aktivasi Soal -->
@@ -145,8 +141,9 @@
     const db = getFirestore(app);
 
     let soalAktifId = null;
-    let siswaKelas = []; // simpan daftar siswa sesuai kelas soal
+    let siswaKelas = []; 
     let currentKelas = "";
+    let monitorInterval = null;
 
     window.logout = async function() {
       await signOut(auth);
@@ -159,7 +156,7 @@
       if(page === 'soal') loadSoal();
       if(page === 'siswa') loadSiswa();
       if(page === 'logs') loadLogs();
-      if(page === 'monitor') loadMonitor();
+      if(page === 'monitor') { loadMonitor(); startMonitorAutoRefresh(); } else { stopMonitorAutoRefresh(); }
     };
 
     // ====== Kelola Soal ======
@@ -185,7 +182,7 @@
 
     window.bukaPopup = async function(docId) {
       soalAktifId = docId;
-      currentKelas = docId.split("_")[0]; // ambil kelas dari id soal
+      currentKelas = docId.split("_")[0]; 
       siswaKelas = [];
       const siswaSnap = await getDocs(collection(db, "users"));
       let html = "";
@@ -200,10 +197,7 @@
       document.getElementById("popup").style.display = "flex";
     };
 
-    window.closePopup = function() {
-      document.getElementById("popup").style.display = "none";
-    };
-
+    window.closePopup = function() { document.getElementById("popup").style.display = "none"; };
     window.toggleAllSiswa = function() {
       const checkboxes = document.querySelectorAll("#siswaChecklist input[type=checkbox]");
       const allChecked = Array.from(checkboxes).every(cb => cb.checked);
@@ -318,42 +312,69 @@
       }
       loadLogs();
     };
+
+    // ====== Monitoring ======
     async function loadMonitor() {
-  const tbody = document.querySelector("#monitorTable tbody");
-  tbody.innerHTML = "";
+      const tbody = document.querySelector("#monitorTable tbody");
+      tbody.innerHTML = "";
 
-  const siswaSnap = await getDocs(collection(db, "users"));
-  const soalSnap = await getDocs(collection(db, "soal"));
+      const soalSnap = await getDocs(collection(db, "soal"));
+      const activeSoalByClass = {};
+      soalSnap.forEach(s => {
+        const d = s.data();
+        if (d.aktif) {
+          const kelas = s.id.split("_")[0];
+          activeSoalByClass[kelas] = { id: s.id, data: d };
+        }
+      });
 
-  for (const s of siswaSnap.docs) {
-    const dataS = s.data();
-    if (dataS.role !== "siswa") continue;
+      const siswaSnap = await getDocs(collection(db, "users"));
+      for (const s of siswaSnap.docs) {
+        const ds = s.data();
+        if (ds.role !== "siswa") continue;
+        const kelas = ds.kelas;
+        const soalObj = activeSoalByClass[kelas];
+        const soalLabel = soalObj ? soalObj.id : "-";
 
-    // cek soal aktif untuk kelas siswa
-    const soal = soalSnap.docs.find(doc => doc.id.startsWith(dataS.kelas) && doc.data().aktif);
-    if (!soal) continue;
+        let status = "Tidak ada soal aktif";
+        if (soalObj) {
+          const jawabanDoc = await getDoc(doc(db, "jawaban", s.id));
+          const j = jawabanDoc.exists() ? jawabanDoc.data() : null;
 
-    const soalData = soal.data();
-    const jawabanDoc = await getDoc(doc(db, "jawaban", s.id));
+          if (!j || j.soalId !== soalObj.id) status = "Belum Login";
+          else if (j.submitted) status = "Selesai";
+          else if (j.started) {
+            const answered = j.answers ? Object.keys(j.answers).length : 0;
+            const total = soalObj.data.soal ? soalObj.data.soal.length : 0;
+            let lastAct = j.lastActivity;
+            if (lastAct && lastAct.toDate) lastAct = lastAct.toDate();
+            const inactiveMs = lastAct ? (Date.now() - lastAct.getTime()) : null;
+            if (inactiveMs !== null && inactiveMs > 2 * 60 * 1000) {
+              status = `Terhenti (${answered}/${total})`;
+            } else {
+              status = `Sedang Mengerjakan (${answered}/${total})`;
+            }
+          } else if (j.present) status = "Menunggu Mulai";
+          else status = "Terdaftar";
+        }
 
-    let status = "Belum Login";
-    if (jawabanDoc.exists()) {
-      const j = jawabanDoc.data();
-      if (j.submitted) status = "Selesai";
-      else if (j.answers && Object.keys(j.answers).length > 0) status = "Sedang Mengerjakan";
-      else status = "Sudah Login";
+        tbody.innerHTML += `
+          <tr>
+            <td>${ds.nama}</td>
+            <td>${ds.kelas}</td>
+            <td>${soalLabel}</td>
+            <td>${status}</td>
+          </tr>`;
+      }
     }
 
-    tbody.innerHTML += `
-      <tr>
-        <td>${dataS.nama}</td>
-        <td>${dataS.kelas}</td>
-        <td>${soal.id}</td>
-        <td>${status}</td>
-      </tr>`;
-  }
+    function startMonitorAutoRefresh() {
+      if (monitorInterval) clearInterval(monitorInterval);
+      monitorInterval = setInterval(loadMonitor, 15000);
     }
-    
+    function stopMonitorAutoRefresh() {
+      if (monitorInterval) { clearInterval(monitorInterval); monitorInterval = null; }
+    }
 
     // ====== Upload Soal ======
     window.uploadSoal = function() {
