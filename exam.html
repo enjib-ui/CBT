@@ -90,6 +90,11 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    const alertAudioElem = document.getElementById("alertSound");
+  if (alertAudioElem) {
+    alertAudioElem.volume = 1.0;
+  }
+
     let soalData = [];
     let current = 0;
     let answers = {};
@@ -116,16 +121,29 @@
         logCheating("Keluar fullscreen");
         btnFS.style.display = "block";
 
-        // 🔊 mainkan suara beep
-        const audio = document.getElementById("alertSound");
-        if (audio) {
-          audio.currentTime = 0;
-          audio.play().catch(()=>{});
-        }
-      } else {
-        btnFS.style.display = "none";
+        // ==== Web Audio API boost ====
+    const audioElem = document.getElementById("alertSound");
+    if (audioElem) {
+      // buat AudioContext hanya sekali
+      if (!window._alertCtx) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        window._alertCtx = new Ctx();
+        window._sourceNode = window._alertCtx.createMediaElementSource(audioElem);
+        window._gainNode = window._alertCtx.createGain();
+        window._sourceNode.connect(window._gainNode).connect(window._alertCtx.destination);
       }
-    });
+      // atur gain dan playback rate
+      window._gainNode.gain.value = 2.0;      // 2x lebih keras
+      audioElem.playbackRate = 1.2;           // lebih cepat/tinggi
+      // putar ulang dari awal
+      audioElem.currentTime = 0;
+      window._alertCtx.resume().catch(()=>{});
+      audioElem.play().catch(()=>{});
+    }
+  } else {
+    btnFS.style.display = "none";
+  }
+});
 
     // =====================
     // Exam logic
