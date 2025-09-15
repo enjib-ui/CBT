@@ -26,6 +26,8 @@
     #startSection { text-align:center; margin-top:40px; }
     #startSection button { padding:12px 20px; font-size:16px; background:#27ae60; color:white;
                            border:none; border-radius:8px; }
+    #fullscreenBtn { margin-top:10px; display:none; background:#f39c12; color:white;
+                     padding:10px; border:none; border-radius:6px; width:100%; }
   </style>
 </head>
 <body>
@@ -47,6 +49,8 @@
       <div id="navQ"></div>
       <button id="submitBtn" onclick="submitExam()">Kirim Jawaban</button>
       <p id="submitMsg" style="color:green;font-weight:bold"></p>
+      <!-- 🔄 Tombol kembali fullscreen -->
+      <button id="fullscreenBtn" onclick="startFullscreen()">⛶ Kembali ke Fullscreen</button>
     </div>
   </div>
 
@@ -245,14 +249,25 @@
       window.location.href = "index.html";
     };
 
+    // =====================
+    // Fullscreen + Anti-cheat
+    // =====================
     function startFullscreen() {
       if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen();
       }
     }
+
     document.addEventListener("fullscreenchange", () => {
-      if (!document.fullscreenElement) logCheating("Keluar fullscreen");
+      const btnFS = document.getElementById("fullscreenBtn");
+      if (!document.fullscreenElement) {
+        logCheating("Keluar fullscreen");
+        btnFS.style.display = "block"; // tampilkan tombol kembali
+      } else {
+        btnFS.style.display = "none"; // sembunyikan kalau sudah fullscreen
+      }
     });
+
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) logCheating("Pindah tab/minimize");
     });
@@ -267,7 +282,6 @@
       await addDoc(collection(db, "cheatingLogs"), { uid: user.uid, reason, time: new Date() });
     }
 
-    // update lastActivity tiap kali window fokus
     window.addEventListener("focus", async () => {
       const user = auth.currentUser;
       if (user) await setDoc(doc(db, "jawaban", user.uid), { lastActivity:new Date() }, { merge:true });
