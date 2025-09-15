@@ -5,27 +5,114 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Log Pelanggaran - Pengawas</title>
   <style>
-    body { font-family: Arial, sans-serif; background:#f4f6f9; margin:0; padding:20px; }
-    h2 { text-align:center; }
-    .card { background:white; padding:20px; border-radius:12px;
-            box-shadow:0 2px 6px rgba(0,0,0,0.1); margin-bottom:20px; }
-    label { font-weight:bold; }
-    select { padding:6px; margin-left:8px; }
-    table { width:100%; border-collapse:collapse; margin-top:15px; }
-    th, td { border:1px solid #ddd; padding:8px; text-align:center; }
-    th { background:#3498db; color:white; }
+    body {
+      font-family: 'Segoe UI', Roboto, sans-serif;
+      background: #f4f6f9;
+      margin: 0;
+      padding: 16px;
+      color: #333;
+    }
+
+    h2 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+
+    .filter-box {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 15px;
+    }
+
+    select {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+      outline: none;
+      transition: 0.3s;
+    }
+
+    select:focus {
+      border-color: #3498db;
+      box-shadow: 0 0 4px rgba(52,152,219,0.6);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 12px 8px;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      background: linear-gradient(135deg, #3498db, #2980b9);
+      color: white;
+      font-weight: 600;
+    }
+
+    tr:nth-child(even) {
+      background: #f9fbfc;
+    }
+
+    /* 📱 Responsif untuk Android/mobile */
+    @media (max-width: 600px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+      thead { display: none; }
+      tr {
+        margin-bottom: 12px;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        padding: 10px;
+      }
+      td {
+        text-align: left;
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 6px;
+        border: none;
+      }
+      td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        color: #555;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="card">
     <h2>📋 Log Pelanggaran Ujian</h2>
-    <div>
-      <label for="kelasFilter">Filter Kelas:</label>
+    <div class="filter-box">
+      <label for="kelasFilter" style="margin-right:8px; font-weight:600;">Kelas:</label>
       <select id="kelasFilter"></select>
     </div>
     <table>
       <thead>
-        <tr><th>Nama</th><th>Kelas</th><th>Alasan</th><th>Waktu</th></tr>
+        <tr>
+          <th>Nama</th>
+          <th>Kelas</th>
+          <th>Alasan</th>
+          <th>Waktu</th>
+        </tr>
       </thead>
       <tbody id="logsTable"></tbody>
     </table>
@@ -49,10 +136,8 @@
 
     const kelasFilter = document.getElementById("kelasFilter");
     const logsTable = document.getElementById("logsTable");
-
     let usersCache = {};
 
-    // 🔄 Ambil daftar kelas dari koleksi users
     async function loadKelasFilter() {
       const snapshot = await getDocs(collection(db, "users"));
       const kelasSet = new Set();
@@ -69,7 +154,6 @@
       });
     }
 
-    // 🔄 Tampilkan log realtime
     function loadLogsRealtime() {
       onSnapshot(collection(db, "cheatingLogs"), async (snapshot) => {
         logsTable.innerHTML = "";
@@ -79,7 +163,6 @@
           const data = log.data();
           let nama = data.uid, kelas = "-";
 
-          // Ambil user dari cache (supaya cepat)
           if (usersCache[data.uid]) {
             nama = usersCache[data.uid].nama || usersCache[data.uid].email;
             kelas = usersCache[data.uid].kelas;
@@ -93,14 +176,14 @@
           }
 
           if (!filterKelas || kelas === filterKelas) {
-            const waktu = data.time?.seconds ? 
+            const waktu = data.time?.seconds ?
               new Date(data.time.seconds * 1000).toLocaleString() : "-";
             logsTable.innerHTML += `
               <tr>
-                <td>${nama}</td>
-                <td>${kelas}</td>
-                <td>${data.reason}</td>
-                <td>${waktu}</td>
+                <td data-label="Nama">${nama}</td>
+                <td data-label="Kelas">${kelas}</td>
+                <td data-label="Alasan">${data.reason}</td>
+                <td data-label="Waktu">${waktu}</td>
               </tr>
             `;
           }
@@ -109,8 +192,6 @@
     }
 
     kelasFilter.addEventListener("change", loadLogsRealtime);
-
-    // 🚀 Jalankan saat halaman dibuka
     loadKelasFilter().then(() => loadLogsRealtime());
   </script>
 </body>
