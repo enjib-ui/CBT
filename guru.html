@@ -2,9 +2,10 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Guru - Modern</title>
   <style>
-    body { margin:0; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; background:#f4f6f9; }
+    body { margin:0; font-family:'Segoe UI',Tahoma,Verdana,sans-serif; background:#f4f6f9; }
     .sidebar { position:fixed; left:0; top:0; bottom:0; width:220px; background:#2c3e50; color:white; padding:20px; }
     .sidebar h2 { text-align:center; margin-bottom:30px; }
     .sidebar ul { list-style:none; padding:0; }
@@ -111,8 +112,8 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-    import { getAuth, signOut, createUserWithEmailAndPassword, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-    import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    import { getAuth, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+    import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
     import * as XLSX from "https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs";
 
     const firebaseConfig = {
@@ -129,8 +130,6 @@
     const db = getFirestore(app);
 
     let soalAktifId = null;
-    let siswaKelas = []; // simpan daftar siswa sesuai kelas soal
-    let currentKelas = "";
 
     window.logout = async function() {
       await signOut(auth);
@@ -168,15 +167,13 @@
 
     window.bukaPopup = async function(docId) {
       soalAktifId = docId;
-      currentKelas = docId.split("_")[0]; // ambil kelas dari id soal
-      siswaKelas = [];
+      const kelas = docId.split("_")[0];
       const siswaSnap = await getDocs(collection(db, "users"));
       let html = "";
       siswaSnap.forEach(s => {
-        const data = s.data();
-        if (data.role === "siswa" && data.kelas === currentKelas) {
-          siswaKelas.push({ uid: s.id, nama: data.nama });
-          html += `<label><input type="checkbox" value="${s.id}"> ${data.nama}</label>`;
+        const d = s.data();
+        if (d.role === "siswa" && d.kelas === kelas) {
+          html += `<label><input type="checkbox" value="${s.id}"> ${d.nama}</label>`;
         }
       });
       document.getElementById("siswaChecklist").innerHTML = html || "<p>Tidak ada siswa di kelas ini</p>";
@@ -238,15 +235,19 @@
         const data = docSnap.data();
         if (data.role === "siswa") {
           const row = `<tr>
-            <td>${data.nama}</td>
-            <td>${data.email}</td>
-            <td>${data.kelas}</td>
+            <td contenteditable onblur="updateSiswa('${docSnap.id}', 'nama', this.innerText)">${data.nama}</td>
+            <td contenteditable onblur="updateSiswa('${docSnap.id}', 'email', this.innerText)">${data.email}</td>
+            <td contenteditable onblur="updateSiswa('${docSnap.id}', 'kelas', this.innerText)">${data.kelas}</td>
             <td><button class="danger" onclick="hapusSiswa('${docSnap.id}')">Hapus</button></td>
           </tr>`;
           tbody.innerHTML += row;
         }
       });
     }
+
+    window.updateSiswa = async function(uid, field, value) {
+      await updateDoc(doc(db, "users", uid), { [field]: value });
+    };
 
     window.hapusSiswa = async function(uid) {
       if (!confirm("Yakin hapus siswa ini?")) return;
@@ -329,4 +330,5 @@
     };
   </script>
 </body>
-</html>
+  </html>
+  
