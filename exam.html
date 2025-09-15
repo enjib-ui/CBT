@@ -36,13 +36,11 @@
   </header>
 
   <div class="container">
-    <!-- sebelum ujian -->
     <div id="startSection">
       <p id="startMsg">⏳ Menunggu jadwal ujian...</p>
       <button id="startBtn" onclick="startExam()" disabled>Mulai Ujian</button>
     </div>
 
-    <!-- saat ujian -->
     <div id="examSection" style="display:none;">
       <div id="question"></div>
       <div id="opts"></div>
@@ -75,6 +73,7 @@
     let answers = {};
     let soalStart, soalEnd, timerInterval;
     let soalFound = null;
+    let soalFoundId = null;
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) { window.location.href = "index.html"; return; }
@@ -82,23 +81,32 @@
       if (!userDoc.exists()) { logout(); return; }
       const kelasUser = userDoc.data().kelas;
 
-      // cari soal aktif untuk kelas ini
       const snapshot = await getDocs(collection(db, "soal"));
-      snapshot.forEach(docSnap => {
+      for (const docSnap of snapshot.docs) {
         const data = docSnap.data();
         if (data.aktif && docSnap.id.startsWith(kelasUser)) {
-          // cek apakah user termasuk allowedUsers
           if (data.allowedUsers && data.allowedUsers.includes(user.uid)) {
             soalFound = data;
+            soalFoundId = docSnap.id;
+            break;
           }
         }
-      });
+      }
 
       if (!soalFound) {
         document.querySelector(".container").innerHTML =
           "<p>❌ Tidak ada soal aktif atau Anda tidak terdaftar untuk ujian ini.</p>";
         return;
       }
+
+      await setDoc(doc(db, "jawaban", user.uid), {
+        soalId: soalFoundId,
+        present: true,
+        presentAt: new Date(),
+        lastActivity: new Date(),
+        started: false,
+        submitted: false
+      }, { merge: true });
 
       soalData = soalFound.soal;
       const [jam, menit] = soalFound.jamMulai.split(":").map(Number);
@@ -127,25 +135,29 @@
       }
     }
 
-    window.startExam = function() {
+    window.startExam = async function() {
       document.getElementById("startSection").style.display = "none";
       document.getElementById("examSection").style.display = "block";
       renderQuestion();
       renderNav();
       startTimer();
       startFullscreen();
-      
+
       const user = auth.currentUser;
-  if (user) {
-    await setDoc(doc(db, "jawaban", user.uid), { started:true, submitted:false }, { merge:true });
-  }
+      if (user) {
+        await setDoc(doc(db, "jawaban", user.uid), {
+          started: true,
+          startedAt: new Date(),
+          lastActivity: new Date(),
+          submitted: false
+        }, { merge: true });
+      }
     };
 
     function startTimer() {
       timerInterval = setInterval(() => {
         const now = new Date();
         const sisa = soalEnd - now;
-
         if (sisa <= 0) {
           clearInterval(timerInterval);
           document.getElementById("timer").innerText = "00:00";
@@ -205,18 +217,27 @@
     async function saveAnswer() {
       const user = auth.currentUser;
       if (!user) return;
-      await setDoc(doc(db, "jawaban", user.uid), { answers }, { merge: true });
+      await setDoc(doc(db, "jawaban", user.uid), {
+        answers,
+        lastActivity: new Date(),
+        started: true
+      }, { merge: true });
     }
 
     window.submitExam = async function() {
       document.getElementById("submitBtn").disabled = true;
       document.getElementById("submitMsg").innerText = "✅ Jawaban berhasil dikirim!";
       clearInterval(timerInterval);
+
       const user = auth.currentUser;
-  if (user) {
-    await setDoc(doc(db, "jawaban", user.uid), { submitted:true, finishedAt:new Date() }, { merge:true });
-  }
-  logout();
+      if (user) {
+        await setDoc(doc(db, "jawaban", user.uid), {
+          submitted: true,
+          finishedAt: new Date(),
+          lastActivity: new Date()
+        }, { merge: true });
+      }
+      logout();
     };
 
     window.logout = async function() {
@@ -224,9 +245,6 @@
       window.location.href = "index.html";
     };
 
-    // =====================
-    // Anti-cheat
-    // =====================
     function startFullscreen() {
       if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen();
@@ -248,6 +266,12 @@
       if (!user) return;
       await addDoc(collection(db, "cheatingLogs"), { uid: user.uid, reason, time: new Date() });
     }
+
+    // update lastActivity tiap kali window fokus
+    window.addEventListener("focus", async () => {
+      const user = auth.currentUser;
+      if (user) await setDoc(doc(db, "jawaban", user.uid), { lastActivity:new Date() }, { merge:true });
+    });
   </script>
 </body>
 </html>
