@@ -180,6 +180,47 @@ window.importSiswaExcel = function() {
   };
   reader.readAsArrayBuffer(fileInput.files[0]);
 };
+    // === Import Siswa via Excel ===
+window.importSiswaExcel = function() {
+  const fileInput = document.getElementById("fileSiswaExcel");
+  if (!fileInput.files[0]) { 
+    alert("Pilih file Excel terlebih dahulu!"); 
+    return; 
+  }
+
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: "array" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet);
+
+    for (const row of rows) {
+      const nama = row.Nama || "";
+      const email = row.Email || "";
+      const password = row.Password || "12345678";
+      const kelas = row.Kelas || "";
+
+      if (!nama || !email || !kelas) {
+        console.warn("⏭ Skip baris karena ada kolom kosong:", row);
+        continue;
+      }
+
+      try {
+        const userCred = await createUserWithEmailAndPassword(auth, email, password);
+        await setDoc(doc(db, "users", userCred.user.uid), { nama, email, kelas, role:"siswa" });
+        console.log("✅ Ditambahkan:", nama);
+      } catch (err) {
+        console.error("❌ Gagal import:", email, err.message);
+      }
+    }
+
+    alert("✅ Import siswa selesai");
+    loadSiswa(); // refresh tabel
+  };
+  reader.readAsArrayBuffer(fileInput.files[0]);
+};
+    
 
     let soalAktifId = null;
     let siswaKelas = []; 
