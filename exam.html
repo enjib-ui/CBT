@@ -69,6 +69,9 @@
     </div>
   </div>
 
+  <!-- 🔊 Suara alert ketika keluar fullscreen -->
+  <audio id="alertSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
@@ -98,7 +101,7 @@
     function isAndroid() { return /Android/.test(navigator.userAgent); }
 
     // =====================
-    // Fullscreen utils (portrait only)
+    // Fullscreen utils
     // =====================
     window.startFullscreen = function() {
       const el = document.documentElement;
@@ -112,6 +115,10 @@
       if (!document.fullscreenElement && isAndroid()) {
         logCheating("Keluar fullscreen");
         btnFS.style.display = "block";
+
+        // 🔊 mainkan suara beep
+        const audio = document.getElementById("alertSound");
+        if (audio) audio.play().catch(()=>{});
       } else {
         btnFS.style.display = "none";
       }
