@@ -1,58 +1,74 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hasil Ujian</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- ✅ penting untuk HP -->
+  <title>Login Ujian</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
-    header { background: #2c3e50; color: white; padding: 15px; text-align: center; }
-    input, button {
-      padding: 8px; margin: 5px; border-radius: 6px; border: 1px solid #ccc;
+    body {
+      font-family: Arial, sans-serif;
+      background: url("rel.jpg") no-repeat center center fixed;
+      background-size: cover;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
     }
-    button { background: #3498db; color: white; border: none; cursor: pointer; }
-    button:hover { background: #2980b9; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-    th { background: #3498db; color: white; }
+    .login-box {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+      width: 90%;              /* ✅ fleksibel di HP */
+      max-width: 360px;        /* ✅ batasi di layar besar */
+      text-align: center;
+    }
+    h2 {
+      margin-bottom: 20px;
+      color: #2c3e50;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    .btn {
+      width: 100%;
+      padding: 14px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #3498db;
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+      transition: 0.3s;
+    }
+    .btn:hover { background: #2980b9; }
+
+    /* 📱 Responsif tambahan */
+    @media (max-width: 600px) {
+      .login-box { padding: 20px; }
+      input, .btn { font-size: 14px; padding: 12px; }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <h2>📊 Hasil Ujian</h2>
-  </header>
-  <button onclick="window.location.href='guru.html'" 
-            style="float:right;background:#e74c3c;color:white;
-                   border:none;padding:8px 12px;border-radius:6px;cursor:pointer;">
-      ⬅️ Kembali
-  </button>
-
-  <div>
-    <input type="text" id="kelasInput" placeholder="Kelas (misal: kelas10)">
-    <input type="text" id="mapelInput" placeholder="Mapel (misal: matematika)">
-    <button onclick="loadHasil()">Tampilkan Hasil</button>
-    <button onclick="exportExcel()" style="background:green;">⬇️ Ekspor Excel</button>
+  <div class="login-box">
+    <h2>🔐 Login</h2>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button class="btn" onclick="login()">Login</button>
   </div>
-
-  <table id="hasilTable">
-    <thead>
-      <tr>
-        <th>Nama</th>
-        <th>Email</th>
-        <th>Kelas</th>
-        <th>Jawaban</th>
-        <th>Poin</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <!-- Tambahkan library SheetJS -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-    import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
@@ -64,79 +80,25 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const auth = getAuth(app);
 
-    window.loadHasil = async function() {
-      const kelas = document.getElementById("kelasInput").value.trim();
-      const mapel = document.getElementById("mapelInput").value.trim();
-      if (!kelas || !mapel) {
-        alert("⚠️ Isi kelas dan mapel dulu!");
+    window.login = async function() {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      if (!email || !password) {
+        alert("⚠️ Harap isi email dan password");
         return;
       }
-
-      // 🔑 Ambil kunci jawaban
-      const soalRef = doc(db, "soal", `${kelas}_${mapel}`);
-      const soalSnap = await getDoc(soalRef);
-      let kunci = [];
-      if (soalSnap.exists()) {
-        kunci = soalSnap.data().soal.map(s => s.JawabanBenar || "");
-      }
-
-      // Ambil semua users
-      const usersSnap = await getDocs(collection(db, "users"));
-      const users = {};
-      usersSnap.forEach(u => { users[u.id] = u.data(); });
-
-      // Ambil jawaban siswa
-      const jawabanSnap = await getDocs(collection(db, "jawaban"));
-      const tbody = document.querySelector("#hasilTable tbody");
-      tbody.innerHTML = "";
-
-      jawabanSnap.forEach(docSnap => {
-        const data = docSnap.data();
-        const user = users[docSnap.id];
-        if (user && user.kelas === kelas) {
-          let poin = 0;
-          if (kunci.length > 0 && data.answers) {
-            Object.keys(data.answers).forEach(i => {
-              const jawabanSiswa = (data.answers[i] || "").toUpperCase();
-              const jawabanBenar = (kunci[i] || "").toUpperCase();
-              if (jawabanSiswa === jawabanBenar) poin++;
-            });
-          }
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${user.nama || "-"}</td>
-            <td>${user.email || "-"}</td>
-            <td>${user.kelas || "-"}</td>
-            <td>${JSON.stringify(data.answers || {})}</td>
-            <td>${poin}</td>
-          `;
-          tbody.appendChild(tr);
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        if (email.includes("guru")) {
+          window.location.href = "guru.html";
+        } else {
+          window.location.href = "exam.html";
         }
-      });
-    };
-
-    // ✅ Fungsi ekspor Excel
-    window.exportExcel = function() {
-      const table = document.getElementById("hasilTable");
-
-      // ambil kelas & mapel dari input
-      const kelas = document.getElementById("kelasInput").value.trim() || "kelas";
-      const mapel = document.getElementById("mapelInput").value.trim() || "mapel";
-
-      // ambil tanggal hari ini (format YYYY-MM-DD)
-      const today = new Date();
-      const yyyy = today.getFullYear();
-      const mm = String(today.getMonth() + 1).padStart(2, "0");
-      const dd = String(today.getDate()).padStart(2, "0");
-      const tanggal = `${yyyy}-${mm}-${dd}`;
-
-      // nama file akhir
-      const fileName = `hasil_${kelas}_${mapel}_${tanggal}.xlsx`;
-
-      const wb = XLSX.utils.table_to_book(table, { sheet: "Hasil Ujian" });
-      XLSX.writeFile(wb, fileName);
+      } catch (err) {
+        alert("❌ Login gagal: " + err.message);
+      }
     };
   </script>
 </body>
