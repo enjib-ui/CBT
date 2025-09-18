@@ -19,20 +19,18 @@
       background-size: cover;
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       backdrop-filter: blur(6px);
       
     }
     
-    #lottie-background {
-      position: absolute;
-      top: 10;
-      left: 0;
+    #lottie-header {
       width: 100%;
-      height: 300px; /* tinggi area animasi di bagian atas */
-      z-index: 0;   /* tetap di belakang */
-      overflow: hidden;
+      max-width: 400px; /* lebar animasi */
+      height: 250px;    /* tinggi animasi */
+      margin-top: 20px;
     }
 
     .login-box {
@@ -103,7 +101,7 @@
 </head>
 <body>
   <div class="login-container">
-    <div id="lottie-background"></div>
+    <div id="lottie-header"></div>
     <!-- Ganti logo.png dengan logo sekolah -->
     <img src="logo.png" alt="Logo"> 
     <h2>Login</h2>
@@ -166,9 +164,10 @@
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
   <script>
     lottie.loadAnimation({
-      container: document.getElementById('lottie-background'),
+      container: document.getElementById('lottie-header'),
       renderer: 'svg',
       loop: true,
       autoplay: true,
