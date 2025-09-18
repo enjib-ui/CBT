@@ -87,6 +87,7 @@
 </head>
 <body>
   <div class="login-container">
+  <div id="lottie-animation" style="width: 250px; height: 250px; margin-bottom: 20px;"></div>
     <!-- Ganti logo.png dengan logo sekolah -->
     <img src="logo.png" alt="Logo"> 
     <h2>Login</h2>
@@ -146,6 +147,16 @@
   document.addEventListener("DOMContentLoaded", function() {
     document.body.style.zoom = "100%";
   });
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+  <script>
+    lottie.loadAnimation({
+      container: document.getElementById('lottie-animation'),
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      path: 'female-character-waving.json' // file animasi kamu
+    });
   </script>
   
 </body>
