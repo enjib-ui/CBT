@@ -1,127 +1,75 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Login Ujian</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login Ujian - Debug Mata Interaktif</title>
   <style>
-    html, body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
+    body{
+      margin:0;
+      font-family:Arial, sans-serif;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      background: url("rel.jpg") no-repeat center center fixed;
+      background-size:cover;
+      min-height:100vh;
+      color:#000;
     }
-    
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: url("BG.jpeg") no-repeat center center;
-      background-size: cover;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      backdrop-filter: blur(6px);
-      
+    #lottie-header{
+      width:100%;
+      max-width:420px;
+      height:260px;
+      margin-top:20px;
+      position:relative; /* penting untuk overlay */
     }
-    
-    #lottie-header {
-      width: 100%;
-      max-width: 200px; /* lebar animasi */
-      height: 125px;    /* tinggi animasi */
-      margin-top: 20px;
+    .login-box{
+      background:rgba(255,255,255,0.92);
+      padding:22px;
+      border-radius:12px;
+      box-shadow:0 8px 20px rgba(0,0,0,0.15);
+      width:320px;
+      text-align:center;
+      margin-top:14px;
+    }
+    input{ width:90%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid #ccc }
+    .btn{ width:95%; padding:12px; border-radius:8px; border:none; background:#3498db; color:#fff; font-weight:700 }
+    #debug{
+      width:90%; max-width:420px; margin:14px 0 40px 0;
+      background:rgba(0,0,0,0.75); color:#0f0; padding:10px; font-family:monospace;
+      font-size:12px; border-radius:6px; white-space:pre-wrap; max-height:280px; overflow:auto;
     }
 
-    .login-box {
-      position: relative;
-      z-index: 1; /* biar selalu di atas animasi */
+    /* small overlay dot to represent pupil (fallback when transform change fails) */
+    #pupil-overlay{
+      position:absolute;
+      width:16px;
+      height:16px;
+      border-radius:50%;
+      background:rgba(0,0,0,0.9);
+      transform:translate(-50%,-50%);
+      pointer-events:none;
+      display:none; /* set visible if used */
+      box-shadow:0 1px 3px rgba(0,0,0,0.4);
     }
-
-    .login-container {
-      background: rgba(255, 255, 255, 0.85);
-      padding: 30px 25px;
-      border-radius: 12px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-      width: 90%;
-      max-width: 370px;
-      text-align: center;
-      backdrop-filter: blur(6px);
-      box-sizing: border-box;
-    }
-    .login-container img {
-      width: 100px;
-      margin-bottom: 15px;
-    }
-    .login-container h2 {
-      margin-bottom: 20px;
-      color: #2c3e50;
-    }
-    input[type="email"], input[type="password"] {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 12px;
-      margin: 8px 0;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 15px;
-    }
-    .remember {
-      text-align: left;
-      margin: 10px 0;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-    }
-    .remember input { margin-right: 6px; }
-    .btn {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      background: #3498db;
-      color: white;
-      font-size: 16px;
-      font-weight: bold;
-      transition: 0.3s;
-    }
-    .btn:hover { background: #2980b9; }
-    .links {
-      margin-top: 15px;
-      font-size: 14px;
-    }
-    .links a {
-      color: #3498db;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    .links a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
   <div id="lottie-header"></div>
-  <div class="login-container">
-    <!-- Ganti logo.png dengan logo sekolah -->
-    <img src="logo.png" alt="Logo"> 
-    <h2>Login</h2>
-    <input type="email" id="email" placeholder="Email" />
-    <input type="password" id="password" placeholder="Password" />
-    
-    <div class="remember">
-      <input type="checkbox" id="remember"> <label for="remember">Remember Me</label>
-    </div>
 
-    <button class="btn" onclick="login()">Log In</button>
-
-    <div class="links">
-      <!-- ✅ Ganti admin@sekolah.ac.id dengan email admin -->
-      <a href="mailto: mujibridwan044@gmail.com?subject=Lupa%20Password%20CBT&body=Halo%20Admin,%20saya%20lupa%20password%20login%20CBT.%20Mohon%20bantuannya.">
-        Lupa Password?
-      </a>
-    </div>
+  <div class="login-box">
+    <h3>🔐 Login</h3>
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button class="btn" onclick="login()">Login</button>
   </div>
 
+  <pre id="debug">Menunggu animasi...</pre>
+
+  <!-- overlay dot -->
+  <div id="pupil-overlay"></div>
+
+  <!-- Firebase (sama seperti sebelumnya) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
@@ -134,44 +82,243 @@
       messagingSenderId: "395028121712",
       appId: "1:395028121712:web:8bf3d5470c13204bef8cb5"
     };
-
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-
-    window.login = async function() {
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value.trim();
-      if (!email || !password) {
-        alert("⚠️ Harap isi email dan password");
-        return;
-      }
+    window.login = async () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
       try {
         await signInWithEmailAndPassword(auth, email, password);
-        if (email.includes("guru")) {
-          window.location.href = "guru.html";
-        } else {
-          window.location.href = "exam.html";
-        }
-      } catch (err) {
-        alert("❌ Login gagal: " + err.message);
-      }
+        if (email.includes("guru")) window.location.href = "guru.html";
+        else window.location.href = "exam.html";
+      } catch (err) { alert("Login gagal: " + err.message); }
     };
   </script>
-  <script>
-  document.addEventListener("DOMContentLoaded", function() {
-    document.body.style.zoom = "100%";
-  });
-  </script>
+
+  <!-- lottie -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
   <script>
-    lottie.loadAnimation({
+    const debugEl = document.getElementById('debug');
+
+    function dlog(...args){
+      debugEl.textContent += args.join(' ') + '\n';
+      debugEl.scrollTop = debugEl.scrollHeight;
+    }
+
+    // cari secara rekursif element Lottie berdasarkan nama layer (data.nm)
+    function findElementByName(elements, name, path = []) {
+      if (!elements || !elements.length) return null;
+      for (let i = 0; i < elements.length; i++){
+        const el = elements[i];
+        const curPath = path.concat(i);
+        if (el && el.data && el.data.nm === name) return { el, path: curPath };
+        if (el && el.elements && el.elements.length){
+          const found = findElementByName(el.elements, name, curPath);
+          if (found) return found;
+        }
+      }
+      return null;
+    }
+
+    const anim = lottie.loadAnimation({
       container: document.getElementById('lottie-header'),
       renderer: 'svg',
       loop: true,
       autoplay: true,
       path: 'female-character-waving.json'
     });
+
+    let targetEl = null;       // runtime element for 'mlt'
+    let targetPath = null;
+    let originalPos = null;    // store original transform pos if possible
+    let overlay = document.getElementById('pupil-overlay');
+
+    // Helper: coba set posisi via runtime transform objek
+    function setPositionViaTransform(el, dx, dy){
+      try {
+        if (!el) return false;
+        // case A: el.transform.p.v is array [x,y,...]
+        if (el.transform && el.transform.p && Array.isArray(el.transform.p.v)){
+          if (!el._origPos) el._origPos = [...el.transform.p.v];
+          el.transform.p.v[0] = el._origPos[0] + dx;
+          el.transform.p.v[1] = el._origPos[1] + dy;
+          el.transform._mdf = true;
+          return true;
+        }
+        // case B: el.transform.mProp.v (matrix style)
+        if (el.transform && el.transform.mProp && el.transform.mProp.v && Array.isArray(el.transform.mProp.v)){
+          if (!el._origPos) el._origPos = [...el.transform.mProp.v];
+          el.transform.mProp.v[0] = el._origPos[0] + dx;
+          el.transform.mProp.v[1] = el._origPos[1] + dy;
+          el.transform._mdf = true;
+          return true;
+        }
+      } catch(e){
+        dlog('Error setPositionViaTransform:', e.message);
+      }
+      return false;
+    }
+
+    // Helper: posisikan overlay dot di tengah boundingBox dari element DOM group
+    function positionOverlayForGroup(domGroup, dx, dy){
+      try {
+        if (!domGroup) return false;
+        const container = document.getElementById('lottie-header');
+        const groupRect = domGroup.getBoundingClientRect();
+        const contRect = container.getBoundingClientRect();
+        // center of group
+        let cx = groupRect.left - contRect.left + groupRect.width/2;
+        let cy = groupRect.top - contRect.top + groupRect.height/2;
+        cx += dx; cy += dy;
+        overlay.style.left = cx + 'px';
+        overlay.style.top = cy + 'px';
+        overlay.style.display = 'block';
+        return true;
+      } catch(e){
+        dlog('Error positionOverlayForGroup:', e.message);
+        return false;
+      }
+    }
+
+    // setelah anim dimuat, cari 'mlt'
+    anim.addEventListener('DOMLoaded', () => {
+      dlog('=== DOMLoaded ===');
+      // show top-level element names (short)
+      try {
+        dlog('Top-level elements count:', anim.renderer.elements.length);
+        anim.renderer.elements.forEach((el, i) => {
+          const nm = el && el.data && el.data.nm ? el.data.nm : '(no name)';
+          dlog('['+i+']', nm);
+        });
+      } catch(e){
+        dlog('Gagal baca renderer.elements:', e.message);
+      }
+
+      // 1) cari 'mlt' secara rekursif
+      const found = findElementByName(anim.renderer.elements, 'mlt');
+      if (!found){
+        dlog('Layer "mlt" TIDAK ditemukan (cek nama mungkin berbeda).');
+        dlog('Coba cari "head_A" dulu...');
+        const headFound = findElementByName(anim.renderer.elements, 'head_A');
+        if (headFound){
+          dlog('Ditemukan head_A di path: ' + headFound.path.join(' > '));
+          dlog('Keys head_A:', Object.keys(headFound.el).join(', '));
+          if (headFound.el.elements && headFound.el.elements.length){
+            dlog('Isi head_A (child names):');
+            headFound.el.elements.forEach((c,i)=> dlog('  ['+i+']', c.data && c.data.nm ? c.data.nm : '(no name)'));
+          }
+        } else {
+          dlog('head_A juga tidak ditemukan — paste hasil ini ke chat agar aku bantu analisa.');
+        }
+        return;
+      }
+
+      // simpan target runtime element
+      targetEl = found.el;
+      targetPath = found.path;
+      dlog('Ditemukan "mlt" pada path: ' + targetPath.join(' > '));
+      dlog('Keys pada element mlt:', Object.keys(targetEl).join(', '));
+
+      // tunjukkan transform jika ada
+      if (targetEl.transform){
+        dlog('transform keys:', Object.keys(targetEl.transform).join(', '));
+        if (targetEl.transform.p && Array.isArray(targetEl.transform.p.v)){
+          dlog('transform.p.v (runtime):', JSON.stringify(targetEl.transform.p.v));
+        }
+        if (targetEl.transform.mProp){
+          dlog('transform.mProp.v (runtime):', JSON.stringify(targetEl.transform.mProp.v || targetEl.transform.mProp));
+        }
+      } else {
+        dlog('Tidak ada targetEl.transform (kita akan coba cari layerElement DOM)');
+      }
+
+      // apakah ada DOM group terkait?
+      let domGroup = null;
+      if (targetEl.layerElement) {
+        domGroup = targetEl.layerElement;
+        dlog('Ditemukan targetEl.layerElement => tag:', domGroup.tagName);
+      } else if (targetEl.baseElement) {
+        domGroup = targetEl.baseElement;
+        dlog('Ditemukan targetEl.baseElement => tag:', domGroup.tagName);
+      } else {
+        // coba cari g element dengan nama di atribut (beberapa versi lottie memberi attribute 'data-name')
+        const svgRoot = document.querySelector('#lottie-header svg');
+        if (svgRoot){
+          const candidates = svgRoot.querySelectorAll('g');
+          // cari group yang memiliki atribut data-name == 'mlt' atau title children matches
+          for (let g of candidates){
+            if (g.getAttribute && (g.getAttribute('data-name')==='mlt' || g.getAttribute('name')==='mlt' || g.getAttribute('id')==='mlt')){
+              domGroup = g; break;
+            }
+          }
+          if (!domGroup){
+            dlog('Tidak menemukan domGroup via atribut langsung. Total <g> di svg:', candidates.length);
+          } else {
+            dlog('Menemukan domGroup via svg query');
+          }
+        } else {
+          dlog('SVG root belum terdeteksi atau tidak ada.');
+        }
+      }
+
+      // record original position for overlay approach
+      if (domGroup){
+        dlog('Mencoba posisi overlay berdasarkan bounding box dari DOM group...');
+        const ok = positionOverlayForGroup(domGroup, 0, 0);
+        dlog('Overlay position result:', ok ? 'OK' : 'GAGAL');
+      } else {
+        dlog('DOM group TIDAK tersedia — overlay fallback tidak akan dipakai.');
+      }
+
+      // store original transform pos if available
+      if (targetEl && targetEl.transform && targetEl.transform.p && Array.isArray(targetEl.transform.p.v)){
+        targetEl._origPos = [...targetEl.transform.p.v];
+        dlog('Menyimpan originalPos dari transform.p.v:', JSON.stringify(targetEl._origPos));
+      }
+
+      dlog('Selesai inisialisasi. Ketik pada input email untuk menguji gerakan mata.\n');
+    });
+
+    // saat mengetik -> coba beberapa metode secara berurutan
+    document.getElementById('email').addEventListener('input', (e) => {
+      const len = e.target.value.length;
+      // map length ke offset kecil
+      const dx = Math.max(Math.min((len * 1.6) - 8, 18), -18); // -18 .. 18
+      const dy = 0;
+
+      let usedMethod = null;
+      // 1) coba transform runtime
+      if (targetEl){
+        const ok1 = setPositionViaTransform(targetEl, dx, dy);
+        if (ok1) usedMethod = 'transform.p.v / mProp';
+      }
+
+      // 2) jika belum berhasil, coba overlay move jika ada DOM group
+      if (!usedMethod){
+        // try to find domGroup again quickly:
+        let domGroup = (targetEl && (targetEl.layerElement || targetEl.baseElement)) || null;
+        if (!domGroup){
+          const svgRoot = document.querySelector('#lottie-header svg');
+          if (svgRoot){
+            // brute force: try find g that contains path/shapes belonging to 'mlt' by matching innerHTML length heuristic
+            const gList = svgRoot.querySelectorAll('g');
+            for (let g of gList){
+              if (g && g.innerHTML && g.innerHTML.length < 600 && g.innerHTML.toLowerCase().includes('path')){
+                // not reliable, but we use previously stored overlay pos: just move overlay relative
+                domGroup = g;
+                break;
+              }
+            }
+          }
+        }
+        if (domGroup){
+          const ok2 = positionOverlayForGroup(domGroup, dx, dy);
+          if (ok2) usedMethod = 'overlay DOM bbox';
+        }
+      }
+
+      dlog('(input) len=' + len + ' -> dx=' + dx + ', method=' + (usedMethod || 'none'));
+    });
   </script>
-  
 </body>
 </html>
