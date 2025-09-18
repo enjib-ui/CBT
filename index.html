@@ -2,53 +2,124 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <title>Login Uian</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Login Ujian</title>
   <style>
+    html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+    }
+    
     body {
+      margin: 0;
       font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #3498db, #2ecc71);
-      height: 100vh;
+      background: url("BG.jpeg") no-repeat center center;
+      background-size: cover;
+      min-height: 100vh;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
-      background: url("rel.jpg") no-repeat center center fixed;
-      background-size: cover;
+      backdrop-filter: blur(6px);
+      
     }
+    
+    #lottie-header {
+      width: 100%;
+      max-width: 200px; /* lebar animasi */
+      height: 125px;    /* tinggi animasi */
+      margin-top: 20px;
+    }
+
     .login-box {
-      background: rgba(255, 255, 255, 0.8);
-      padding: 30px;
+      position: relative;
+      z-index: 1; /* biar selalu di atas animasi */
+    }
+
+    .login-container {
+      background: rgba(255, 255, 255, 0.85);
+      padding: 30px 25px;
       border-radius: 12px;
-      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
-      width: 300px;
-      text-align: center;
-    }
-    input {
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
       width: 90%;
-      padding: 10px;
-      margin: 10px 0;
-      border: 1px solid #ccc;
-      border-radius: 8px;
+      max-width: 370px;
+      text-align: center;
+      backdrop-filter: blur(6px);
+      box-sizing: border-box;
     }
-    .btn {
-      width: 95%;
+    .login-container img {
+      width: 100px;
+      margin-bottom: 15px;
+    }
+    .login-container h2 {
+      margin-bottom: 20px;
+      color: #2c3e50;
+    }
+    input[type="email"], input[type="password"] {
+      width: 100%;
+      box-sizing: border-box;
       padding: 12px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 15px;
+    }
+    .remember {
+      text-align: left;
       margin: 10px 0;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+    }
+    .remember input { margin-right: 6px; }
+    .btn {
+      width: 100%;
+      padding: 12px;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
       cursor: pointer;
       background: #3498db;
       color: white;
+      font-size: 16px;
       font-weight: bold;
+      transition: 0.3s;
     }
     .btn:hover { background: #2980b9; }
+    .links {
+      margin-top: 15px;
+      font-size: 14px;
+    }
+    .links a {
+      color: #3498db;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .links a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
-  <div class="login-box">
-    <h2>🔐 Login</h2>
-    <input type="email" id="email" placeholder="Email">
-    <input type="password" id="password" placeholder="Password">
-    <button class="btn" onclick="login()">Login</button>
+  <div id="lottie-header"></div>
+  <div class="login-container">
+    <!-- Ganti logo.png dengan logo sekolah -->
+    <img src="logo.png" alt="Logo"> 
+    <h2>Login</h2>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    
+    <div class="remember">
+      <input type="checkbox" id="remember"> <label for="remember">Remember Me</label>
+    </div>
+
+    <button class="btn" onclick="login()">Log In</button>
+
+    <div class="links">
+      <!-- ✅ Ganti admin@sekolah.ac.id dengan email admin -->
+      <a href="mailto: mujibridwan044@gmail.com?subject=Lupa%20Password%20CBT&body=Halo%20Admin,%20saya%20lupa%20password%20login%20CBT.%20Mohon%20bantuannya.">
+        Lupa Password?
+      </a>
+    </div>
   </div>
 
   <script type="module">
@@ -56,20 +127,24 @@
     import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
 
     const firebaseConfig = {
-  apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
-  authDomain: "authfirebase-4a2ce.firebaseapp.com",
-  projectId: "authfirebase-4a2ce",
-  storageBucket: "authfirebase-4a2ce.firebasestorage.app",
-  messagingSenderId: "395028121712",
-  appId: "1:395028121712:web:8bf3d5470c13204bef8cb5"
-};
+      apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
+      authDomain: "authfirebase-4a2ce.firebaseapp.com",
+      projectId: "authfirebase-4a2ce",
+      storageBucket: "authfirebase-4a2ce.firebasestorage.app",
+      messagingSenderId: "395028121712",
+      appId: "1:395028121712:web:8bf3d5470c13204bef8cb5"
+    };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
     window.login = async function() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      if (!email || !password) {
+        alert("⚠️ Harap isi email dan password");
+        return;
+      }
       try {
         await signInWithEmailAndPassword(auth, email, password);
         if (email.includes("guru")) {
@@ -82,5 +157,21 @@
       }
     };
   </script>
+  <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    document.body.style.zoom = "100%";
+  });
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+  <script>
+    lottie.loadAnimation({
+      container: document.getElementById('lottie-header'),
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      path: 'female-character-waving.json'
+    });
+  </script>
+  
 </body>
 </html>
