@@ -217,20 +217,20 @@
 
       // helper: set transform attribute relatif (menambahkan translate)
       function setTranslate(el, tx = 0, ty = 0) {
-        if (!el) return;
-        // ambil transform sebelumnya (jika ada), kita ganti translate hanya
-        // untuk kesederhanaan, menimpa transform dengan translate
-        el.setAttribute('transform', `translate(${tx} ${ty})`);
-      }
+  if (!el) return;
+  el.style.transform = `translate(${tx}px, ${ty}px)`;
+  el.style.transformBox = "fill-box";
+  el.style.transformOrigin = "center";
+}
 
-      // helper: set scaleY untuk "menutup" mata (blink)
-      function setScaleY(el, sy = 1) {
-        if (!el) return;
-        // gunakan transform-origin tengah dengan transform attribute
-        // Untuk kompatibilitas, bungkus dengan translate(0,0) scale(1, sy)
-        // Perhatikan: transform pada SVG adalah list, jadi kita tulis scale.
-        el.setAttribute('transform', `scale(1 ${sy})`);
-      }
+function closeEyes() {
+  if (eyelid) eyelid.style.opacity = "0"; // mata tertutup
+}
+
+function openEyes() {
+  if (eyelid) eyelid.style.opacity = "1"; // mata terbuka
+    }
+  
 
       // Map posisi caret/teks ke pergeseran pupil. Kita akan gunakan panjang teks dan posisi kursor.
       const emailInput = document.getElementById('email');
