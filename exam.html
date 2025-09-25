@@ -101,6 +101,9 @@
     let soalStart, soalEnd, timerInterval;
     let soalFound = null;
     let soalFoundId = null;
+    let soalMinSubmit = 0;
+    let examStartTime = null;
+    
 
     function isiOS() { return /iPad|iPhone|iPod/.test(navigator.userAgent); }
     function isAndroid() { return /Android/.test(navigator.userAgent); }
@@ -161,6 +164,7 @@
           if (data.allowedUsers && data.allowedUsers.includes(user.uid)) {
             soalFound = data;
             soalFoundId = docSnap.id;
+            soalMinSubmit = soalFound.minSubmit || 0;   // ⬅️ ambil dari Firestore
             break;
           }
         }
@@ -216,6 +220,7 @@
     }
 
     window.startExam = async function() {
+      examStartTime = new Date();   // ⬅️ catat waktu mulai ujian
       document.getElementById("startSection").style.display = "none";
       document.getElementById("examSection").style.display = "block";
       renderQuestion();
@@ -258,6 +263,7 @@
           document.getElementById("timer").innerText =
             (h>0 ? h+":" : "") + String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
         }
+        updateSubmitBtnState();
       }, 1000);
     }
 
@@ -299,8 +305,25 @@
     function checkAllAnswered() {
       if (Object.keys(answers).length === soalData.length) {
         document.getElementById("submitBtn").style.display = "block";
+        updateSubmitBtnState();
       }
     }
+    function updateSubmitBtnState() {
+  const submitBtn = document.getElementById("submitBtn");
+  if (!examStartTime) return;
+  const now = new Date();
+  const elapsedMinutes = Math.floor((now - examStartTime) / 60000);
+
+  if (elapsedMinutes >= soalMinSubmit) {
+    submitBtn.disabled = false;
+    submitBtn.innerText = "Kirim Jawaban";
+  } else {
+    submitBtn.disabled = true;
+    const sisa = soalMinSubmit - elapsedMinutes;
+    submitBtn.innerText = `Kirim Jawaban (aktif ${sisa} menit lagi)`;
+  }
+        }
+    
 
     async function saveAnswer() {
       const user = auth.currentUser;
