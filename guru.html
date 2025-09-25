@@ -116,6 +116,8 @@
       <input type="time" id="jamMulai"><br>
       <label>Durasi (menit):</label><br>
       <input type="number" id="durasi" min="1" value="30"><br>
+      <label>Minimal menit sebelum submit:</label><br>
+      <input type="number" id="minSubmit" min="0" value="0"><br>
       <hr>
       <h4>Pilih Siswa</h4>
       <button onclick="toggleAllSiswa()">Pilih Semua / Batal Semua</button>
@@ -272,10 +274,11 @@ window.importSiswaExcel = function() {
     window.simpanAktif = async function() {
       const jamMulai = document.getElementById("jamMulai").value;
       const durasi = parseInt(document.getElementById("durasi").value);
+      const minSubmit = parseInt(document.getElementById("minSubmit").value) || 0;
       if (!jamMulai || !durasi) { alert("Lengkapi jam mulai dan durasi!"); return; }
       const selected = Array.from(document.querySelectorAll("#siswaChecklist input:checked")).map(cb => cb.value);
       if (selected.length === 0) { alert("Pilih minimal 1 siswa!"); return; }
-      await setDoc(doc(db, "soal", soalAktifId), { aktif:true, jamMulai, durasi, allowedUsers: selected }, { merge:true });
+      await setDoc(doc(db, "soal", soalAktifId), { aktif:true, jamMulai, durasi, minSubmit, allowedUsers: selected }, { merge:true });
       closePopup();
       loadSoal();
     };
