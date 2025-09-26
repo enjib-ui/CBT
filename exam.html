@@ -80,15 +80,14 @@
     #iosMsg { margin-top:10px; display:none; color:#c0392b; font-weight:bold; text-align:center; }
   </style>
 </head>
-<body>
-  <!-- Modal daftar nomor soal -->
-<div id="navModal" class="modal">
+  <div id="navModal" class="modal">
   <div class="modal-content">
     <span class="close" onclick="closeNavModal()">&times;</span>
     <h3>Pilih Nomor Soal</h3>
     <div id="navQ"></div>
   </div>
 </div>
+<body>
   <header>
     <span>Ujian CBT</span>
     <button onclick="openNavModal()">Nomor Soal</button>
@@ -154,6 +153,7 @@
     function isAndroid() { return /Android/.test(navigator.userAgent); }
     window.openNavModal = function() {
   document.getElementById("navModal").style.display = "flex";
+      renderNav();
 }
 window.closeNavModal = function() {
   document.getElementById("navModal").style.display = "none";
@@ -276,7 +276,6 @@ window.closeNavModal = function() {
       document.getElementById("startSection").style.display = "none";
       document.getElementById("examSection").style.display = "block";
       renderQuestion();
-      renderNav();
       startTimer();
 
       // 🔊 trigger izin audio agar bisa diputar nanti
