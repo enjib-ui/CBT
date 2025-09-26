@@ -11,6 +11,43 @@
   <meta name="mobile-web-app-capable" content="yes">
 
   <style>
+    .modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  width: 80%;
+  max-width: 400px;
+  text-align: center;
+}
+.modal-content h3 { margin-bottom: 15px; }
+.modal-content button {
+  margin: 5px;
+  padding: 8px 12px;
+  border: none;
+  background: #3498db;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.modal-content button.done { background: #27ae60; }
+.close {
+  float: right;
+  font-size: 22px;
+  font-weight: bold;
+  cursor: pointer;
+}
+    
     html, body {
       height: 100%;
       margin: 0;
@@ -43,9 +80,19 @@
     #iosMsg { margin-top:10px; display:none; color:#c0392b; font-weight:bold; text-align:center; }
   </style>
 </head>
+  <!-- Modal daftar nomor soal -->
+<div id="navModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeNavModal()">&times;</span>
+    <h3>Pilih Nomor Soal</h3>
+    <div id="navQ"></div>
+  </div>
+</div>
+  
 <body>
   <header>
     <span>Ujian CBT</span>
+    <button onclick="openNavModal()">Nomor Soal</button>
     <span class="timer" id="timer">--:--</span>
     <button onclick="logout()">Logout</button>
   </header>
@@ -59,7 +106,6 @@
     <div id="examSection" style="display:none;">
       <div id="question"></div>
       <div id="opts"></div>
-      <div id="navQ"></div>
       <button id="submitBtn" onclick="submitExam()">Kirim Jawaban</button>
       <p id="submitMsg" style="color:green;font-weight:bold"></p>
       <!-- Tombol fullscreen (Android) -->
@@ -107,6 +153,13 @@
 
     function isiOS() { return /iPad|iPhone|iPod/.test(navigator.userAgent); }
     function isAndroid() { return /Android/.test(navigator.userAgent); }
+    window.openNavModal = function() {
+  document.getElementById("navModal").style.display = "flex";
+}
+window.closeNavModal = function() {
+  document.getElementById("navModal").style.display = "none";
+      }
+    
 
     // =====================
     // Fullscreen utils
