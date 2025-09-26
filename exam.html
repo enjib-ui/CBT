@@ -41,6 +41,33 @@
     #fullscreenBtn { margin-top:10px; display:none; background:#f39c12; color:white;
                      padding:10px; border:none; border-radius:6px; width:100%; }
     #iosMsg { margin-top:10px; display:none; color:#c0392b; font-weight:bold; text-align:center; }
+    /* === Tambahan CSS Modal Soal === */
+#questionModal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6);
+  justify-content: center;
+  align-items: center;
+}
+#questionModal .modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+#questionModal button.close {
+  background:#e74c3c;
+  border:none;
+  padding:6px 12px;
+  color:white;
+  border-radius:6px;
+  float:right;
+                  }
   </style>
 </head>
 <body>
@@ -67,6 +94,14 @@
       <!-- Pesan khusus iOS -->
       <p id="iosMsg">📱 Untuk fullscreen di iPhone/iPad, silakan <br>“Add to Home Screen” dari Safari</p>
     </div>
+    <!-- Modal untuk soal -->
+<div id="questionModal">
+  <div class="modal-content">
+    <button class="close" onclick="closeQuestionModal()">Tutup</button>
+    <div id="modalQuestion"></div>
+    <div id="modalOpts"></div>
+  </div>
+</div>
   </div>
 
   <!-- 🔊 Suara alert ketika keluar fullscreen -->
@@ -296,11 +331,41 @@
         const btn = document.createElement("button");
         btn.innerText = i+1;
         if (answers[i]) btn.classList.add("done");
-        btn.onclick = () => { current = i; renderQuestion(); };
+        btn.onclick = () => openQuestionModal(i);
         nav.appendChild(btn);
       });
       checkAllAnswered();
     }
+    function openQuestionModal(i) {
+  current = i;
+  const qDiv = document.getElementById("modalQuestion");
+  const optsDiv = document.getElementById("modalOpts");
+  qDiv.innerText = soalData[current].Pertanyaan;
+  optsDiv.innerHTML = "";
+
+  ["A","B","C","D","E"].forEach(opt => {
+    if (!soalData[current][opt]) return; // skip kalau kosong
+    const btn = document.createElement("button");
+    btn.innerText = opt + ". " + soalData[current][opt];
+    btn.style.display = "block";
+    btn.style.margin = "5px 0";
+    btn.style.padding = "10px";
+    btn.style.width = "100%";
+    if (answers[current] === opt) btn.classList.add("selected");
+    btn.onclick = () => { 
+      selectOption(opt); 
+      closeQuestionModal(); 
+    };
+    optsDiv.appendChild(btn);
+  });
+
+  document.getElementById("questionModal").style.display = "flex";
+}
+
+function closeQuestionModal() {
+  document.getElementById("questionModal").style.display = "none";
+          }
+    
 
     function checkAllAnswered() {
       if (Object.keys(answers).length === soalData.length) {
