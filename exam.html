@@ -11,6 +11,54 @@
   <meta name="mobile-web-app-capable" content="yes">
 
   <style>
+    /* === Modal Navigasi Soal === */
+.modal {
+  display: none; /* sembunyikan default */
+  position: fixed;
+  z-index: 1000; /* supaya di atas konten lain */
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background: rgba(0, 0, 0, 0.5); /* latar gelap transparan */
+}
+
+.modal-content {
+  background: #fff;
+  margin: 10% auto;
+  padding: 20px;
+  border-radius: 12px;
+  width: 80%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.modal-content h3 {
+  margin-bottom: 15px;
+}
+
+.modal-content button {
+  margin: 5px;
+  padding: 10px 15px;
+  border: none;
+  background: #007bff;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.modal-content button:hover {
+  background: #0056b3;
+}
+
+.close {
+  float: right;
+  font-size: 22px;
+  font-weight: bold;
+  cursor: pointer;
+}
+    
     html, body {
       height: 100%;
       margin: 0;
@@ -46,6 +94,7 @@
 <body>
   <header>
     <span>Ujian CBT</span>
+    <button onclick="openNavModal()"
     <span class="timer" id="timer">--:--</span>
     <button onclick="logout()">Logout</button>
   </header>
@@ -59,13 +108,20 @@
     <div id="examSection" style="display:none;">
       <div id="question"></div>
       <div id="opts"></div>
-      <div id="navQ"></div>
       <button id="submitBtn" onclick="submitExam()">Kirim Jawaban</button>
       <p id="submitMsg" style="color:green;font-weight:bold"></p>
       <!-- Tombol fullscreen (Android) -->
       <button id="fullscreenBtn" onclick="startFullscreen()">⛶ Kembali ke Fullscreen</button>
       <!-- Pesan khusus iOS -->
       <p id="iosMsg">📱 Untuk fullscreen di iPhone/iPad, silakan <br>“Add to Home Screen” dari Safari</p>
+        <!-- Modal daftar nomor soal -->
+<div id="navModal">
+  <div class="modal-content">
+    <button class="close" onclick="closeNavModal()">Tutup</button>
+    <h3>Pilih Nomor Soal</h3>
+    <div id="navQ" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;"></div>
+  </div>
+</div>
     </div>
   </div>
 
@@ -290,16 +346,26 @@
     }
 
     function renderNav() {
-      const nav = document.getElementById("navQ");
-      nav.innerHTML = "";
-      soalData.forEach((_, i) => {
-        const btn = document.createElement("button");
-        btn.innerText = i+1;
-        if (answers[i]) btn.classList.add("done");
-        btn.onclick = () => { current = i; renderQuestion(); };
-        nav.appendChild(btn);
-      });
-      checkAllAnswered();
+  const nav = document.getElementById("navQ");
+  nav.innerHTML = "";
+  soalData.forEach((_, i) => {
+    const btn = document.createElement("button");
+    btn.innerText = i+1;
+    if (answers[i]) btn.classList.add("done");
+    btn.onclick = () => { 
+      current = i; 
+      renderQuestion(); 
+      closeNavModal(); 
+    };
+    nav.appendChild(btn);
+  });
+  checkAllAnswered();
+    }
+    function openNavModal() {
+  document.getElementById("navModal").style.display = "flex";
+}
+function closeNavModal() {
+  document.getElementById("navModal").style.display = "none";
     }
 
     function checkAllAnswered() {
