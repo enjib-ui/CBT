@@ -50,10 +50,15 @@
     html, body {
       height: 100%;
       margin: 0;
-      overflow: hidden; /* cegah scroll */
       font-family: Arial, sans-serif;
       background:#f9f9f9;
     }
+    #examSection {
+  height: calc(100vh - 60px); /* kurangi tinggi header */
+  overflow-y: auto;           /* biarkan scroll kalau isi panjang */
+  padding-bottom: 80px;       /* ruang untuk tombol bawah */
+    }
+    
     header { background:#3498db; color:white; padding:12px;
              display:flex; justify-content:space-between; align-items:center; font-size:18px; }
     header button { background:#e74c3c; border:none; padding:8px 12px; color:white; border-radius:6px; }
