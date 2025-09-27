@@ -171,6 +171,14 @@
     let soalMinSubmit = 0;
     let examStartTime = null;
     
+    function shuffleArray(array) {
+  let arr = array.slice(); // buat salinan biar tidak merusak data asli
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+    }
 
     function isiOS() { return /iPad|iPhone|iPod/.test(navigator.userAgent); }
     function isAndroid() { return /Android/.test(navigator.userAgent); }
@@ -260,7 +268,7 @@ window.closeNavModal = function() {
         submitted: false
       }, { merge: true });
 
-      soalData = soalFound.soal;
+      soalData = shuffleArray(soalFound.soal.slice()); // slice() biar tidak mengubah aslinya
       const [jam, menit] = soalFound.jamMulai.split(":").map(Number);
       soalStart = new Date();
       soalStart.setHours(jam, menit, 0, 0);
