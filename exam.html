@@ -68,6 +68,20 @@
     #navQ button { flex:1 0 18%; min-width:40px; padding:8px; border-radius:6px; border:none;
                    background:#3498db; color:white; }
     #navQ button.done { background:#27ae60; }
+    #navButtons button {
+  padding: 10px 16px;
+  background: #3498db;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+#navButtons button:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+}
+    
     #submitBtn { margin-top:15px; width:100%; padding:12px; background:#27ae60; border:none;
                  border-radius:8px; color:white; font-size:16px; display:none; }
     #submitBtn:disabled { background:#aaa; }
@@ -96,6 +110,11 @@
     <div id="examSection" style="display:none;">
       <div id="question"></div>
       <div id="opts"></div>
+      <!-- 🔹 Tombol navigasi soal -->
+<div id="navButtons" style="margin-top:15px; display:flex; justify-content:space-between;">
+  <button id="prevBtn" onclick="prevQuestion()">⬅️ Sebelum</button>
+  <button id="nextBtn" onclick="nextQuestion()">Selanjutnya ➡️</button>
+</div>
       <button id="submitBtn" onclick="submitExam()">Kirim Jawaban</button>
       <p id="submitMsg" style="color:green;font-weight:bold"></p>
       <!-- Tombol fullscreen (Android) -->
@@ -329,7 +348,24 @@ window.closeNavModal = function() {
         btn.onclick = () => selectOption(opt);
         optsDiv.appendChild(btn);
       });
+      // 🔹 Update tombol prev/next sesuai posisi soal
+  document.getElementById("prevBtn").disabled = current === 0;
+  document.getElementById("nextBtn").disabled = current === soalData.length - 1;
     }
+    window.prevQuestion = function() {
+  if (current > 0) {
+    current--;
+    renderQuestion();
+  }
+};
+
+window.nextQuestion = function() {
+  if (current < soalData.length - 1) {
+    current++;
+    renderQuestion();
+  }
+};
+    
 
     function selectOption(opt) {
       answers[current] = opt;
