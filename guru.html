@@ -103,12 +103,7 @@
       <button class="danger" onclick="hapusLogs()">Hapus Log Kelas</button>
       <table id="logsTable">
         <thead><tr><th>Nama</th>
-        <th>
-  Kelas <br>
-  <select id="monitorKelasFilter" onchange="loadMonitor()">
-    <option value="">Semua</option>
-  </select>
-        </th>
+        <th>Kelas</th>
         <th>Alasan</th><th>Waktu</th></tr></thead>
         <tbody></tbody>
       </table>
@@ -119,7 +114,13 @@
       <h3>Monitoring Aktivitas Siswa</h3>
       <table id="monitorTable">
         <thead>
-          <tr><th>Nama</th><th>Kelas</th><th>Soal</th><th>Status</th></tr>
+          <tr><th>Nama</th>
+            <th>
+  Kelas <br>
+  <select id="monitorKelasFilter" onchange="loadMonitor()">
+    <option value="">Semua</option>
+  </select>
+            </th><th>Soal</th><th>Status</th></tr>
         </thead>
         <tbody></tbody>
       </table>
