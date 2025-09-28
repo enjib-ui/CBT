@@ -338,7 +338,6 @@ window.importSiswaExcel = function() {
     };
 
     // ====== Log Pelanggaran ======
-    (tanggalSet).sort().forEach(t => {
     async function loadLogs() {
   const tbody = document.querySelector("#logsTable tbody");
   const filterKelas = document.getElementById("kelasFilter").value;
