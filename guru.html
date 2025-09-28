@@ -102,7 +102,14 @@
 </select>
       <button class="danger" onclick="hapusLogs()">Hapus Log Kelas</button>
       <table id="logsTable">
-        <thead><tr><th>Nama</th><th>Kelas</th><th>Alasan</th><th>Waktu</th></tr></thead>
+        <thead><tr><th>Nama</th>
+        <th>
+  Kelas <br>
+  <select id="monitorKelasFilter" onchange="loadMonitor()">
+    <option value="">Semua</option>
+  </select>
+        </th>
+        <th>Alasan</th><th>Waktu</th></tr></thead>
         <tbody></tbody>
       </table>
     </section>
@@ -477,62 +484,81 @@ window.importSiswaExcel = function() {
 
     // ====== Monitoring ======
     async function loadMonitor() {
-      const tbody = document.querySelector("#monitorTable tbody");
-      tbody.innerHTML = "";
+  const tbody = document.querySelector("#monitorTable tbody");
+  tbody.innerHTML = "";
 
-      const soalSnap = await getDocs(collection(db, "soal"));
-      const activeSoalByClass = {};
-      soalSnap.forEach(s => {
-        const d = s.data();
-        if (d.aktif) {
-          const kelas = s.id.split("_")[0];
-          activeSoalByClass[kelas] = { id: s.id, data: d };
+  const soalSnap = await getDocs(collection(db, "soal"));
+  const activeSoalByClass = {};
+  soalSnap.forEach(s => {
+    const d = s.data();
+    if (d.aktif) {
+      const kelas = s.id.split("_")[0];
+      activeSoalByClass[kelas] = { id: s.id, data: d };
+    }
+  });
+
+  const siswaSnap = await getDocs(collection(db, "users"));
+
+  const kelasSet = new Set();
+  const filterKelas = document.getElementById("monitorKelasFilter")?.value || "";
+
+  for (const s of siswaSnap.docs) {
+    const ds = s.data();
+    if (ds.role !== "siswa") continue;
+    kelasSet.add(ds.kelas);
+
+    // skip jika tidak sesuai filter
+    if (filterKelas && ds.kelas !== filterKelas) continue;
+
+    const kelas = ds.kelas;
+    const soalObj = activeSoalByClass[kelas];
+    const soalLabel = soalObj ? soalObj.id : "-";
+
+    let status = "Tidak ada soal aktif";
+    if (soalObj) {
+      const jawabanDoc = await getDoc(doc(db, "jawaban", s.id));
+      const j = jawabanDoc.exists() ? jawabanDoc.data() : null;
+
+      if (!j || j.soalId !== soalObj.id) status = "Belum Login";
+      else if (j.submitted) status = "Selesai";
+      else if (j.started) {
+        const answered = j.answers ? Object.keys(j.answers).length : 0;
+        const total = soalObj.data.soal ? soalObj.data.soal.length : 0;
+        let lastAct = j.lastActivity;
+        if (lastAct && lastAct.toDate) lastAct = lastAct.toDate();
+        const inactiveMs = lastAct ? (Date.now() - lastAct.getTime()) : null;
+        if (inactiveMs !== null && inactiveMs > 2 * 60 * 1000) {
+          status = `Terhenti (${answered}/${total})`;
+        } else {
+          status = `Sedang Mengerjakan (${answered}/${total})`;
         }
-      });
+      } else if (j.present) status = "Menunggu Mulai";
+      else status = "Terdaftar";
+    }
 
-      const siswaSnap = await getDocs(collection(db, "users"));
-      for (const s of siswaSnap.docs) {
-        const ds = s.data();
-        if (ds.role !== "siswa") continue;
-        const kelas = ds.kelas;
-        const soalObj = activeSoalByClass[kelas];
-        const soalLabel = soalObj ? soalObj.id : "-";
+    tbody.innerHTML += `
+      <tr>
+        <td>${ds.nama}</td>
+        <td>${ds.kelas}</td>
+        <td>${soalLabel}</td>
+        <td>${status}</td>
+      </tr>`;
+  }
 
-        let status = "Tidak ada soal aktif";
-        if (soalObj) {
-          const jawabanDoc = await getDoc(doc(db, "jawaban", s.id));
-          const j = jawabanDoc.exists() ? jawabanDoc.data() : null;
-
-          if (!j || j.soalId !== soalObj.id) status = "Belum Login";
-          else if (j.submitted) status = "Selesai";
-          else if (j.started) {
-            const answered = j.answers ? Object.keys(j.answers).length : 0;
-            const total = soalObj.data.soal ? soalObj.data.soal.length : 0;
-            let lastAct = j.lastActivity;
-            if (lastAct && lastAct.toDate) lastAct = lastAct.toDate();
-            const inactiveMs = lastAct ? (Date.now() - lastAct.getTime()) : null;
-            if (inactiveMs !== null && inactiveMs > 2 * 60 * 1000) {
-              status = `Terhenti (${answered}/${total})`;
-            } else {
-              status = `Sedang Mengerjakan (${answered}/${total})`;
-            }
-          } else if (j.present) status = "Menunggu Mulai";
-          else status = "Terdaftar";
-        }
-
-        tbody.innerHTML += `
-          <tr>
-            <td>${ds.nama}</td>
-            <td>${ds.kelas}</td>
-            <td>${soalLabel}</td>
-            <td>${status}</td>
-          </tr>`;
-      }
+  // isi ulang dropdown filter kelas
+  const selectKelas = document.getElementById("monitorKelasFilter");
+  if (selectKelas) {
+    const current = selectKelas.value;
+    selectKelas.innerHTML = `<option value="">Semua</option>`;
+    Array.from(kelasSet).sort().forEach(k => {
+      selectKelas.innerHTML += `<option value="${k}" ${k === current ? "selected" : ""}>${k}</option>`;
+    });
+  }
     }
 
     function startMonitorAutoRefresh() {
       if (monitorInterval) clearInterval(monitorInterval);
-      monitorInterval = setInterval(loadMonitor, 15000);
+      monitorInterval = setInterval(loadMonitor, 10000);
     }
     function stopMonitorAutoRefresh() {
       if (monitorInterval) { clearInterval(monitorInterval); monitorInterval = null; }
