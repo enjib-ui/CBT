@@ -338,6 +338,7 @@ window.importSiswaExcel = function() {
     };
 
     // ====== Log Pelanggaran ======
+    (tanggalSet).sort().forEach(t => {
     async function loadLogs() {
   const tbody = document.querySelector("#logsTable tbody");
   const filterKelas = document.getElementById("kelasFilter").value;
@@ -372,7 +373,11 @@ window.importSiswaExcel = function() {
     if (logDate !== "-") tanggalSet.add(logDate);
 
     logsData.push({
-      nama, kelas, alasan: data.reason || "-", waktu: logDate, timeRaw: data.time
+      nama,
+      kelas,
+      alasan: data.reason || "-",
+      waktu: logDate,
+      timeRaw: data.time
     });
   }
 
@@ -407,24 +412,7 @@ window.importSiswaExcel = function() {
     }
   });
     }
-    
-
-  // isi ulang select kelas
-  const selectKelas = document.getElementById("kelasFilter");
-  selectKelas.innerHTML = `<option value="">Semua</option>`;
-  kelasSet.forEach(k => {
-    selectKelas.innerHTML += `<option value="${k}" ${k === filterKelas ? "selected" : ""}>${k}</option>`;
-  });
-
-  // isi ulang select tanggal
-  const selectTanggal = document.getElementById("tanggalFilter");
-  selectTanggal.innerHTML = `<option value="">Semua</option>`;
-  Array.from(tanggalSet).sort().forEach(t => {
-    selectTanggal.innerHTML += `<option value="${t}" ${t === filterTanggal ? "selected" : ""}>${t}</option>`;
-  });
-    }
-    
-
+      
     window.hapusLogs = async function() {
   const filterKelas = document.getElementById("kelasFilter").value;
   const filterTanggal = document.getElementById("tanggalFilter").value;
