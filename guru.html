@@ -348,6 +348,7 @@ window.importSiswaExcel = function() {
 
   const kelasSet = new Set();
   const tanggalSet = new Set();
+  const logsData = [];
 
   for (const log of snapshot.docs) {
     const data = log.data();
@@ -355,30 +356,58 @@ window.importSiswaExcel = function() {
     const userDoc = await getDoc(doc(db, "users", data.uid));
     if (userDoc.exists()) {
       nama = userDoc.data().nama;
-      kelas = userDoc.data().kelas;
+      kelas = userDoc.data().kelas || "-";
     }
 
-    // ambil tanggal (yyyy-mm-dd)
+    // Ambil tanggal (yyyy-mm-dd)
     let logDate = "-";
-    if (data.time && data.time.seconds) {
+    if (data.time?.seconds) {
       const tgl = new Date(data.time.seconds * 1000);
       logDate = tgl.toISOString().slice(0, 10);
-      tanggalSet.add(logDate);
+    } else if (typeof data.time === "string") {
+      logDate = data.time.slice(0, 10); // fallback kalau string
     }
 
     kelasSet.add(kelas);
+    if (logDate !== "-") tanggalSet.add(logDate);
 
-    // filter
-    if ((!filterKelas || kelas === filterKelas) &&
-        (!filterTanggal || logDate === filterTanggal)) {
+    logsData.push({
+      nama, kelas, alasan: data.reason || "-", waktu: logDate, timeRaw: data.time
+    });
+  }
+
+  // isi ulang select kelas
+  const selectKelas = document.getElementById("kelasFilter");
+  selectKelas.innerHTML = `<option value="">Semua</option>`;
+  Array.from(kelasSet).forEach(k => {
+    selectKelas.innerHTML += `<option value="${k}" ${k === filterKelas ? "selected" : ""}>${k}</option>`;
+  });
+
+  // isi ulang select tanggal
+  const selectTanggal = document.getElementById("tanggalFilter");
+  selectTanggal.innerHTML = `<option value="">Semua</option>`;
+  Array.from(tanggalSet).sort().forEach(t => {
+    selectTanggal.innerHTML += `<option value="${t}" ${t === filterTanggal ? "selected" : ""}>${t}</option>`;
+  });
+
+  // render tabel sesuai filter
+  logsData.forEach(log => {
+    if ((!filterKelas || log.kelas === filterKelas) &&
+        (!filterTanggal || log.waktu === filterTanggal)) {
       tbody.innerHTML += `<tr>
-        <td>${nama}</td>
-        <td>${kelas}</td>
-        <td>${data.reason}</td>
-        <td>${new Date(data.time.seconds * 1000).toLocaleString()}</td>
+        <td>${log.nama}</td>
+        <td>${log.kelas}</td>
+        <td>${log.alasan}</td>
+        <td>${
+          log.timeRaw?.seconds
+            ? new Date(log.timeRaw.seconds * 1000).toLocaleString()
+            : log.timeRaw || "-"
+        }</td>
       </tr>`;
     }
-  }
+  });
+    }
+    
 
   // isi ulang select kelas
   const selectKelas = document.getElementById("kelasFilter");
