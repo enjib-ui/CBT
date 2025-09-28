@@ -89,6 +89,10 @@
       <select id="kelasFilter" onchange="loadLogs()">
         <option value="">Semua</option>
       </select>
+      <label>Filter Hari:</label>
+<select id="tanggalFilter" onchange="loadLogs()">
+  <option value="">Semua</option>
+</select>
       <button class="danger" onclick="hapusLogs()">Hapus Log Kelas</button>
       <table id="logsTable">
         <thead><tr><th>Nama</th><th>Kelas</th><th>Alasan</th><th>Waktu</th></tr></thead>
@@ -335,51 +339,99 @@ window.importSiswaExcel = function() {
 
     // ====== Log Pelanggaran ======
     async function loadLogs() {
-      const tbody = document.querySelector("#logsTable tbody");
-      const filter = document.getElementById("kelasFilter").value;
-      tbody.innerHTML = "";
+  const tbody = document.querySelector("#logsTable tbody");
+  const filterKelas = document.getElementById("kelasFilter").value;
+  const filterTanggal = document.getElementById("tanggalFilter").value;
+  tbody.innerHTML = "";
 
-      const snapshot = await getDocs(collection(db, "cheatingLogs"));
-      for (const log of snapshot.docs) {
-        const data = log.data();
-        let nama = data.uid, kelas = "-";
-        const userDoc = await getDoc(doc(db, "users", data.uid));
-        if (userDoc.exists()) {
-          nama = userDoc.data().nama;
-          kelas = userDoc.data().kelas;
-        }
-        if (!filter || kelas === filter) {
-          tbody.innerHTML += `<tr>
-            <td>${nama}</td>
-            <td>${kelas}</td>
-            <td>${data.reason}</td>
-            <td>${new Date(data.time.seconds * 1000).toLocaleString()}</td>
-          </tr>`;
-        }
-      }
+  const snapshot = await getDocs(collection(db, "cheatingLogs"));
 
-      const kelasSet = new Set();
-      const usersSnap = await getDocs(collection(db, "users"));
-      usersSnap.forEach(u => { if (u.data().kelas) kelasSet.add(u.data().kelas); });
-      const select = document.getElementById("kelasFilter");
-      select.innerHTML = `<option value="">Semua</option>`;
-      kelasSet.forEach(k => { select.innerHTML += `<option value="${k}">${k}</option>`; });
+  const kelasSet = new Set();
+  const tanggalSet = new Set();
+
+  for (const log of snapshot.docs) {
+    const data = log.data();
+    let nama = data.uid, kelas = "-";
+    const userDoc = await getDoc(doc(db, "users", data.uid));
+    if (userDoc.exists()) {
+      nama = userDoc.data().nama;
+      kelas = userDoc.data().kelas;
     }
 
+    // ambil tanggal (yyyy-mm-dd)
+    let logDate = "-";
+    if (data.time && data.time.seconds) {
+      const tgl = new Date(data.time.seconds * 1000);
+      logDate = tgl.toISOString().slice(0, 10);
+      tanggalSet.add(logDate);
+    }
+
+    kelasSet.add(kelas);
+
+    // filter
+    if ((!filterKelas || kelas === filterKelas) &&
+        (!filterTanggal || logDate === filterTanggal)) {
+      tbody.innerHTML += `<tr>
+        <td>${nama}</td>
+        <td>${kelas}</td>
+        <td>${data.reason}</td>
+        <td>${new Date(data.time.seconds * 1000).toLocaleString()}</td>
+      </tr>`;
+    }
+  }
+
+  // isi ulang select kelas
+  const selectKelas = document.getElementById("kelasFilter");
+  selectKelas.innerHTML = `<option value="">Semua</option>`;
+  kelasSet.forEach(k => {
+    selectKelas.innerHTML += `<option value="${k}" ${k === filterKelas ? "selected" : ""}>${k}</option>`;
+  });
+
+  // isi ulang select tanggal
+  const selectTanggal = document.getElementById("tanggalFilter");
+  selectTanggal.innerHTML = `<option value="">Semua</option>`;
+  Array.from(tanggalSet).sort().forEach(t => {
+    selectTanggal.innerHTML += `<option value="${t}" ${t === filterTanggal ? "selected" : ""}>${t}</option>`;
+  });
+    }
+    
+
     window.hapusLogs = async function() {
-      const filter = document.getElementById("kelasFilter").value;
-      if (!filter) { alert("Pilih kelas dulu untuk hapus log!"); return; }
-      if (!confirm(`Hapus semua log kelas ${filter}?`)) return;
-      const snapshot = await getDocs(collection(db, "cheatingLogs"));
-      for (const log of snapshot.docs) {
-        const data = log.data();
-        const userDoc = await getDoc(doc(db, "users", data.uid));
-        if (userDoc.exists() && userDoc.data().kelas === filter) {
-          await deleteDoc(doc(db, "cheatingLogs", log.id));
-        }
-      }
-      loadLogs();
-    };
+  const filterKelas = document.getElementById("kelasFilter").value;
+  const filterTanggal = document.getElementById("tanggalFilter").value;
+
+  if (!filterKelas && !filterTanggal) {
+    if (!confirm("Hapus SEMUA log?")) return;
+  } else if (filterKelas && filterTanggal) {
+    if (!confirm(`Hapus log kelas ${filterKelas} pada tanggal ${filterTanggal}?`)) return;
+  } else if (filterKelas) {
+    if (!confirm(`Hapus semua log kelas ${filterKelas}?`)) return;
+  } else if (filterTanggal) {
+    if (!confirm(`Hapus semua log pada tanggal ${filterTanggal}?`)) return;
+  }
+
+  const snapshot = await getDocs(collection(db, "cheatingLogs"));
+  for (const log of snapshot.docs) {
+    const data = log.data();
+    let kelas = "-";
+    const userDoc = await getDoc(doc(db, "users", data.uid));
+    if (userDoc.exists()) kelas = userDoc.data().kelas;
+
+    const tgl = data.time?.seconds
+      ? new Date(data.time.seconds * 1000).toISOString().slice(0, 10)
+      : "";
+
+    if (
+      (!filterKelas || kelas === filterKelas) &&
+      (!filterTanggal || tgl === filterTanggal)
+    ) {
+      await deleteDoc(doc(db, "cheatingLogs", log.id));
+    }
+  }
+
+  loadLogs();
+};
+    
 
     // ====== Monitoring ======
     async function loadMonitor() {
