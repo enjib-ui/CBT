@@ -77,7 +77,14 @@
 
       <h3>Daftar Siswa</h3>
       <table id="siswaTable">
-        <thead><tr><th>Nama</th><th>Email</th><th>Kelas</th><th>Aksi</th></tr></thead>
+        <thead><tr><th>Nama</th><th>Email</th>
+          <th>
+  Kelas <br>
+  <select id="kelasSiswaFilter" onchange="loadSiswa()">
+    <option value="">Semua</option>
+  </select>
+          </th>
+          <th>Aksi</th></tr></thead>
         <tbody></tbody>
       </table>
     </section>
@@ -314,21 +321,40 @@ window.importSiswaExcel = function() {
     };
 
     async function loadSiswa() {
-      const tbody = document.querySelector("#siswaTable tbody");
-      tbody.innerHTML = "";
-      const snapshot = await getDocs(collection(db, "users"));
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        if (data.role === "siswa") {
-          const row = `<tr>
-            <td>${data.nama}</td>
-            <td>${data.email}</td>
-            <td>${data.kelas}</td>
-            <td><button class="danger" onclick="hapusSiswa('${docSnap.id}')">Hapus</button></td>
-          </tr>`;
-          tbody.innerHTML += row;
-        }
-      });
+  const tbody = document.querySelector("#siswaTable tbody");
+  tbody.innerHTML = "";
+
+  const snapshot = await getDocs(collection(db, "users"));
+
+  const kelasSet = new Set();
+  const filterKelas = document.getElementById("kelasSiswaFilter")?.value || "";
+
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+    if (data.role === "siswa") {
+      kelasSet.add(data.kelas);
+
+      if (!filterKelas || data.kelas === filterKelas) {
+        const row = `<tr>
+          <td>${data.nama}</td>
+          <td>${data.email}</td>
+          <td>${data.kelas}</td>
+          <td><button class="danger" onclick="hapusSiswa('${docSnap.id}')">Hapus</button></td>
+        </tr>`;
+        tbody.innerHTML += row;
+      }
+    }
+  });
+
+  // isi ulang select filter kelas
+  const selectKelas = document.getElementById("kelasSiswaFilter");
+  if (selectKelas) {
+    const current = selectKelas.value;
+    selectKelas.innerHTML = `<option value="">Semua</option>`;
+    Array.from(kelasSet).sort().forEach(k => {
+      selectKelas.innerHTML += `<option value="${k}" ${k === current ? "selected" : ""}>${k}</option>`;
+    });
+  }
     }
 
     window.hapusSiswa = async function(uid) {
