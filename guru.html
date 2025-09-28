@@ -236,14 +236,52 @@ window.importSiswaExcel = function() {
       window.location.href = "index.html";
     };
 
-    window.showPage = function(page) {
-      document.querySelectorAll('.content section').forEach(sec => sec.style.display = "none");
-      document.getElementById(page).style.display = "block";
-      if(page === 'soal') loadSoal();
-      if(page === 'siswa') loadSiswa();
-      if(page === 'logs') loadLogs();
-      if(page === 'monitor') { loadMonitor(); startMonitorAutoRefresh(); } else { stopMonitorAutoRefresh(); }
-    };
+window.showPage = function(page) {
+  // sembunyikan semua section
+  document.querySelectorAll('.content section').forEach(sec => sec.style.display = "none");
+  
+  // tampilkan section sesuai pilihan
+  document.getElementById(page).style.display = "block";
+  
+  // simpan state ke localStorage
+  localStorage.setItem("activePage", page);
+
+  // jalankan loader sesuai halaman
+  if(page === 'soal') loadSoal();
+  if(page === 'siswa') loadSiswa();
+  if(page === 'logs') loadLogs();
+  if(page === 'monitor') { 
+    loadMonitor(); 
+    startMonitorAutoRefresh(); 
+  } else { 
+    stopMonitorAutoRefresh(); 
+  }
+};
+
+// === restore halaman terakhir saat reload ===
+window.addEventListener("DOMContentLoaded", () => {
+  const lastPage = localStorage.getItem("activePage") || "upload"; // default upload
+  showPage(lastPage);
+
+  // update sidebar agar aktif sesuai halaman
+  document.querySelectorAll('.sidebar a').forEach(link => {
+    link.classList.remove('active');
+    if(link.getAttribute('onclick')?.includes(lastPage)) {
+      link.classList.add('active');
+    }
+  });
+});
+
+// === fungsi logout ===
+window.logout = function() {
+  // hapus state halaman terakhir
+  localStorage.removeItem("activePage");
+
+  // kalau ada Firebase Auth, signOut
+  firebase.auth().signOut().then(() => {
+    window.location.href = "login.html"; 
+  });
+};
 
     // ====== Kelola Soal ======
     async function loadSoal() {
