@@ -277,7 +277,7 @@ window.logout = async function() {
   try {
     await signOut(auth); // logout Firebase
     localStorage.removeItem("activePage"); // bersihkan state
-    window.location.href = "login.html"; // arahkan ke halaman login
+    window.location.href = "index.html"; // arahkan ke halaman login
   } catch (err) {
     alert("❌ Gagal logout: " + err.message);
   }
