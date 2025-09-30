@@ -211,7 +211,16 @@ window.closeNavModal = function() {
       // 🚨 Getar di Android
       if (navigator.vibrate) 
         navigator.vibrate([200, 100, 200]);
-      if (audio) { audio.currentTime = 0; audio.play().catch(()=>{}); }
+      if (audio) {
+  let playCount = 0;
+  const maxPlay = 3;
+  audio.currentTime = 0;
+  audio.play();
+  audio.onended = () => {
+    playCount++;
+    if (playCount < maxPlay) {
+      audio.currentTime = 0;
+      audio.play();}
       } else {
     btnFS.style.display = "none";
       }
