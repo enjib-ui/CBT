@@ -381,7 +381,7 @@ if (examStartTime && soalEnd > now) {
     audio.pause();
     audio.currentTime = 0;
     audio.play().catch(()=>{ console.log("Audio play blocked"); });
-};
+});
 
     function startTimer() {
       timerInterval = setInterval(() => {
