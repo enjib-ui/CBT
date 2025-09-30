@@ -323,7 +323,8 @@ if (examStartTime && soalEnd > now) {
   document.querySelector(".container").innerHTML = "<p>❌ Waktu ujian telah berakhir.</p>";
   return;
 }  
-      setInterval(checkStartTime, 1000);
+
+  setInterval(checkStartTime, 1000);
 
       // tampilkan tombol atau pesan sesuai device
       if (isiOS()) {
