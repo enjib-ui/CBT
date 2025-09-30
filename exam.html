@@ -305,20 +305,24 @@ if (jawabanDoc.exists()) {
     });
   }
 
-  // 🔹 Kalau ujian masih berlangsung → lanjutkan
-  const now = new Date();
-   if (examStartTime && soalEnd > now) {
-    document.getElementById("startSection").style.display = "none";
-    document.getElementById("examSection").style.display = "block";
-    renderQuestion();
-    renderNav();   // ⬅️ ditambah biar nav ikut ke-refresh
-    startTimer();
-  } else if (soalEnd <= now) {
-    document.querySelector(".container").innerHTML = "<p>❌ Waktu ujian telah berakhir.</p>";
-    return;
-  }
-    }
-      
+// 🔹 Kalau ujian sudah pernah dimulai & masih dalam durasi,
+// jangan langsung lompat ke soal → tetap tunggu tombol "Mulai Ujian"
+const now = new Date();
+if (examStartTime && soalEnd > now) {
+  // tampilkan start section lagi
+  document.getElementById("startSection").style.display = "block";
+  document.getElementById("examSection").style.display = "none";
+
+  // ubah pesan supaya siswa tahu ini resume
+  const msg = document.getElementById("startMsg");
+  msg.innerText = "🔄 Anda sudah mulai ujian ini, tekan tombol di bawah untuk melanjutkan.";
+
+  // pastikan tombol bisa diklik kalau sudah masuk jadwal
+  document.getElementById("startBtn").disabled = false;
+} else if (soalEnd <= now) {
+  document.querySelector(".container").innerHTML = "<p>❌ Waktu ujian telah berakhir.</p>";
+  return;
+}  
       setInterval(checkStartTime, 1000);
 
       // tampilkan tombol atau pesan sesuai device
