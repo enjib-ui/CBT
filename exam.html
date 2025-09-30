@@ -357,15 +357,6 @@ if (user) {
 
       if (isAndroid()) startFullscreen();
 
-      const user = auth.currentUser;
-      if (user) {
-        await setDoc(doc(db, "jawaban", user.uid), {
-          started: true,
-          startedAt: new Date(),
-          lastActivity: new Date(),
-          submitted: false
-        }, { merge: true });
-      }
     };
 
     function startTimer() {
@@ -448,7 +439,7 @@ window.nextQuestion = function() {
     }
     function updateSubmitBtnState() {
   const submitBtn = document.getElementById("submitBtn");
-  if (!soalStart || !soalEnd) return; // ambil jadwal dari guru
+  if (!soalStart || !soalEnd || !examStartTime) return; // ambil jadwal dari guru
 
   const now = new Date();
 
