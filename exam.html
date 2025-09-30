@@ -209,7 +209,7 @@ window.closeNavModal = function() {
         btnFS.style.display = "block";
       
       // 🚨 Getar di Android
-      if (navigator.vibrate) {
+      if (navigator.vibrate) 
         navigator.vibrate([200, 100, 200]);
       if (audio) { audio.currentTime = 0; audio.play().catch(()=>{}); }
       } else {
