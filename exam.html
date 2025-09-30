@@ -219,12 +219,20 @@ window.closeNavModal = function() {
         window._sourceNode.connect(window._gainNode).connect(window._alertCtx.destination);
       }
       // atur gain dan playback rate
-      window._gainNode.gain.value = 2.0;      // 2x lebih keras
+      window._gainNode.gain.value = 4.0;      // 2x lebih keras
       audioElem.playbackRate = 1.2;           // lebih cepat/tinggi
       // putar ulang dari awal
       audioElem.currentTime = 0;
       window._alertCtx.resume().catch(()=>{});
       audioElem.play().catch(()=>{});
+      // 🚨 Getar di Android
+      if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200]);
+      }
+    }
+  } else {
+    btnFS.style.display = "none";
+      }
     }
   } else {
     btnFS.style.display = "none";
