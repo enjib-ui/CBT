@@ -205,30 +205,7 @@ window.closeNavModal = function() {
       const btnFS = document.getElementById("fullscreenBtn");
       if (!document.fullscreenElement && isAndroid()) {
         logCheating("Keluar fullscreen");
-        btnFS.style.display = "block";
-
-        // ==== Web Audio API boost ====
-    const audioElem = document.getElementById("alertSound");
-    if (audioElem) {
-      // buat AudioContext hanya sekali
-      if (window._alertCtx) {
-        window._alertCtx.resume().then(() => {
-          audioElem.currentTime = 0;
-          audioElem.play().catch(()=>{});
-        });
-      }
-      // 🔊 Unlock audio agar bisa diputar nanti tanpa interaksi tambahan
-const audio = document.getElementById("alertSound");
-if (!window._alertCtx) {
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  const source = ctx.createMediaElementSource(audio);
-  const gainNode = ctx.createGain();
-  source.connect(gainNode).connect(ctx.destination);
-  gainNode.gain.value = 1.5; // jangan terlalu tinggi, biar tidak diblok
-  audio.play().then(()=>audio.pause()).catch(()=>{});
-  window._alertCtx = ctx;
-  window._gainNode = gainNode;
-}
+        btnFS.style.display = "block";)
       
       // 🚨 Getar di Android
       if (navigator.vibrate) {
@@ -387,9 +364,14 @@ if (examStartTime && soalEnd > now) {
     audio.pause();
     audio.currentTime = 0;
   }).catch(()=>{})
-};
-    
 
+  // 🔹 UNLOCK AUDIO
+const audio = document.getElementById("alertSound");
+audio.play().then(() => {
+  audio.pause();
+  audio.currentTime = 0;
+}).catch(()=>{});
+      
     function startTimer() {
       timerInterval = setInterval(() => {
         const now = new Date();
