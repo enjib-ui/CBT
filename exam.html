@@ -212,17 +212,22 @@ window.closeNavModal = function() {
       if (navigator.vibrate) 
         navigator.vibrate([200, 100, 200]);
       if (audio) {
+  audio.playbackRate = 1.5; // bisa diubah 1.2, 2.0, dst
   let playCount = 0;
   const maxPlay = 3;
-  audio.currentTime = 0;
-  audio.play();
-  audio.onended = () => {
-    playCount++;
+  const delay = 150; // jeda antar beep (ms)
+
+  function playBeep() {
     if (playCount < maxPlay) {
       audio.currentTime = 0;
-      audio.play();}
-        };
-        }
+      audio.play().catch(()=>{}); // play bisa gagal di iOS/Android jika belum unlock
+      playCount++;
+      setTimeout(playBeep, delay);
+    }
+  }
+
+  playBeep();
+}
       } else {
     btnFS.style.display = "none";
       }
