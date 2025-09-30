@@ -307,7 +307,7 @@ if (jawabanDoc.exists()) {
 
   // 🔹 Kalau ujian masih berlangsung → lanjutkan
   const now = new Date();
-  if (examStartTime && soalEnd > now) {
+   if (examStartTime && soalEnd > now) {
     document.getElementById("startSection").style.display = "none";
     document.getElementById("examSection").style.display = "block";
     renderQuestion();
@@ -348,32 +348,37 @@ if (jawabanDoc.exists()) {
     }
 
     window.startExam = async function() {
-      if (isAndroid()) startFullscreen();
-      examStartTime = new Date();   // waktu mulai ujian
+  if (isAndroid()) startFullscreen();
 
-const user = auth.currentUser;
-if (user) {
-  await setDoc(doc(db, "jawaban", user.uid), {
-    started: true,
-    startedAt: examStartTime,   // ⬅️ simpan waktu mulai ke Firestore
-    lastActivity: new Date(),
-    submitted: false
-  }, { merge: true });
-}
+  // kalau examStartTime sudah ada (login ulang), jangan direset
+  if (!examStartTime) {
+    examStartTime = new Date();
+  }
 
-      document.getElementById("startSection").style.display = "none";
-      document.getElementById("examSection").style.display = "block";
-      renderQuestion();
-      startTimer();
+  const user = auth.currentUser;
+  if (user) {
+    await setDoc(doc(db, "jawaban", user.uid), {
+      started: true,
+      startedAt: examStartTime,   // ⬅️ simpan waktu mulai ke Firestore
+      lastActivity: new Date(),
+      submitted: false
+    }, { merge: true });
+  }
 
-      // 🔊 trigger izin audio agar bisa diputar nanti
-      const audio = document.getElementById("alertSound");
-      audio.play().then(() => {
-        audio.pause();
-        audio.currentTime = 0;
-      }).catch(()=>{})
+  document.getElementById("startSection").style.display = "none";
+  document.getElementById("examSection").style.display = "block";
+  renderQuestion();
+  renderNav();
+  startTimer();
 
-    };
+  // 🔊 trigger izin audio agar bisa diputar nanti
+  const audio = document.getElementById("alertSound");
+  audio.play().then(() => {
+    audio.pause();
+    audio.currentTime = 0;
+  }).catch(()=>{})
+};
+    
 
     function startTimer() {
       timerInterval = setInterval(() => {
