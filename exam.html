@@ -444,7 +444,7 @@ window.nextQuestion = function() {
   const now = new Date();
 
   // menit sejak guru start
-  const elapsedMinutes = Math.floor((now - soalStart) / 60000);
+  const elapsedMinutes = Math.floor((now - examStartTime) / 60000);
 
   // sisa waktu ujian
   const remainingMinutes = Math.floor((soalEnd - now) / 60000);
