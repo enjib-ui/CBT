@@ -327,7 +327,7 @@ if (jawabanDoc.exists()) {
         document.getElementById("iosMsg").style.display = "block";
       } else if (isAndroid()) {
         document.getElementById("fullscreenBtn").style.display = "block";
-      }
+      
     });
 
     function checkStartTime() {
@@ -372,7 +372,7 @@ if (user) {
       audio.play().then(() => {
         audio.pause();
         audio.currentTime = 0;
-      }).catch(()=>{}))
+      }).catch(()=>{})
 
     };
 
