@@ -429,7 +429,7 @@ window.nextQuestion = function() {
     }
     function updateSubmitBtnState() {
   const submitBtn = document.getElementById("submitBtn");
-  if (!examStartTime) return;
+  if (!soalStart) return;
   const now = new Date();
   const elapsedMinutes = Math.floor((now - examStartTime) / 60000);
 
