@@ -234,9 +234,6 @@ window.closeNavModal = function() {
     btnFS.style.display = "none";
       }
     }
-  } else {
-    btnFS.style.display = "none";
-  }
 });
 
     // =====================
@@ -352,6 +349,7 @@ if (jawabanDoc.exists()) {
     }
 
     window.startExam = async function() {
+      if (isAndroid()) startFullscreen();
       examStartTime = new Date();   // waktu mulai ujian
 
 const user = auth.currentUser;
@@ -374,9 +372,7 @@ if (user) {
       audio.play().then(() => {
         audio.pause();
         audio.currentTime = 0;
-      }).catch(()=>{});
-
-      if (isAndroid()) startFullscreen();
+      }).catch(()=>{}))
 
     };
 
