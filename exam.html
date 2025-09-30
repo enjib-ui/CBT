@@ -429,20 +429,31 @@ window.nextQuestion = function() {
     }
     function updateSubmitBtnState() {
   const submitBtn = document.getElementById("submitBtn");
-  if (!soalStart) return;
-  const now = new Date();
-  const elapsedMinutes = Math.floor((now - examStartTime) / 60000);
+  if (!soalStart || !soalEnd) return; // ambil jadwal dari guru
 
-  if (elapsedMinutes >= soalMinSubmit) {
+  const now = new Date();
+
+  // menit sejak guru start
+  const elapsedMinutes = Math.floor((now - soalStart) / 60000);
+
+  // sisa waktu ujian
+  const remainingMinutes = Math.floor((soalEnd - now) / 60000);
+
+  if (elapsedMinutes >= soalMinSubmit && remainingMinutes > 0) {
+    // tombol aktif
     submitBtn.disabled = false;
     submitBtn.innerText = "Kirim Jawaban";
-  } else {
+  } else if (remainingMinutes <= 0) {
+    // kalau waktu habis
     submitBtn.disabled = true;
+    submitBtn.innerText = "Waktu Habis";
+  } else {
+    // countdown sampai aktif
     const sisa = soalMinSubmit - elapsedMinutes;
+    submitBtn.disabled = true;
     submitBtn.innerText = `Kirim Jawaban (aktif ${sisa} menit lagi)`;
   }
-        }
-    
+    }
 
     async function saveAnswer() {
       const user = auth.currentUser;
