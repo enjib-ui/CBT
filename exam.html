@@ -211,20 +211,25 @@ window.closeNavModal = function() {
     const audioElem = document.getElementById("alertSound");
     if (audioElem) {
       // buat AudioContext hanya sekali
-      if (!window._alertCtx) {
-        const Ctx = window.AudioContext || window.webkitAudioContext;
-        window._alertCtx = new Ctx();
-        window._sourceNode = window._alertCtx.createMediaElementSource(audioElem);
-        window._gainNode = window._alertCtx.createGain();
-        window._sourceNode.connect(window._gainNode).connect(window._alertCtx.destination);
+      if (window._alertCtx) {
+        window._alertCtx.resume().then(() => {
+          audioElem.currentTime = 0;
+          audioElem.play().catch(()=>{});
+        });
       }
-      // atur gain dan playback rate
-      window._gainNode.gain.value = 4.0;      // 2x lebih keras
-      audioElem.playbackRate = 1.2;           // lebih cepat/tinggi
-      // putar ulang dari awal
-      audioElem.currentTime = 0;
-      window._alertCtx.resume().catch(()=>{});
-      audioElem.play().catch(()=>{});
+      // 🔊 Unlock audio agar bisa diputar nanti tanpa interaksi tambahan
+const audio = document.getElementById("alertSound");
+if (!window._alertCtx) {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const source = ctx.createMediaElementSource(audio);
+  const gainNode = ctx.createGain();
+  source.connect(gainNode).connect(ctx.destination);
+  gainNode.gain.value = 1.5; // jangan terlalu tinggi, biar tidak diblok
+  audio.play().then(()=>audio.pause()).catch(()=>{});
+  window._alertCtx = ctx;
+  window._gainNode = gainNode;
+}
+      
       // 🚨 Getar di Android
       if (navigator.vibrate) {
         navigator.vibrate([200, 100, 200]);
