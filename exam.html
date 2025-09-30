@@ -239,95 +239,71 @@ window.closeNavModal = function() {
     // Exam logic
     // =====================
     onAuthStateChanged(auth, async (user) => {
-      if (!user) { window.location.href = "index.html"; return; }
-      const userDoc = await getDoc(doc(db, "users", user.uid));
-      if (!userDoc.exists()) { logout(); return; }
-      const kelasUser = userDoc.data().kelas;
+  if (!user) { window.location.href = "index.html"; return; }
+  const userDoc = await getDoc(doc(db, "users", user.uid));
+  if (!userDoc.exists()) { logout(); return; }
+  const kelasUser = userDoc.data().kelas;
 
-      const snapshot = await getDocs(collection(db, "soal"));
-      for (const docSnap of snapshot.docs) {
-        const data = docSnap.data();
-        if (data.aktif && docSnap.id.startsWith(kelasUser)) {
-          if (data.allowedUsers && data.allowedUsers.includes(user.uid)) {
-            soalFound = data;
-            soalFoundId = docSnap.id;
-            soalMinSubmit = soalFound.minSubmit || 0;   // ⬅️ ambil dari Firestore
-            break;
-          }
-        }
+  const snapshot = await getDocs(collection(db, "soal"));
+  for (const docSnap of snapshot.docs) {
+    const data = docSnap.data();
+    if (data.aktif && docSnap.id.startsWith(kelasUser)) {
+      if (data.allowedUsers && data.allowedUsers.includes(user.uid)) {
+        soalFound = data;
+        soalFoundId = docSnap.id;
+        soalMinSubmit = soalFound.minSubmit || 0;
+        break;
       }
-
-      if (!soalFound) {
-        document.querySelector(".container").innerHTML =
-          "<p>❌ Tidak ada soal aktif atau Anda tidak terdaftar untuk ujian ini.</p>";
-        return;
-      }
-
-      await setDoc(doc(db, "jawaban", user.uid), {
-        soalId: soalFoundId,
-        present: true,
-        presentAt: new Date(),
-        lastActivity: new Date(),
-        started: false,
-        submitted: false
-      }, { merge: true });
-
-      soalData = shuffleArray(soalFound.soal.slice()); // slice() biar tidak mengubah aslinya
-      const [jam, menit] = soalFound.jamMulai.split(":").map(Number);
-      soalStart = new Date();
-      soalStart.setHours(jam, menit, 0, 0);
-      soalEnd = new Date(soalStart.getTime() + soalFound.durasi * 60000);
-
-      // sekarang boleh cek apakah user sudah sempat mulai ujian (resume)
-const jawabanDoc = await getDoc(doc(db, "jawaban", user.uid));
-if (jawabanDoc.exists()) {
-  const dataJawaban = jawabanDoc.data();
-
-  // 🔹 Ambil waktu mulai ujian dari Firestore (supaya timer submit sinkron)
-  if (dataJawaban.startedAt) {
-    if (typeof dataJawaban.startedAt.toDate === "function") {
-      examStartTime = dataJawaban.startedAt.toDate();
-    } else {
-      examStartTime = new Date(dataJawaban.startedAt);
     }
   }
 
-  // 🔹 Ambil jawaban lama & warnai nav
-  if (dataJawaban.answers) {
-    answers = dataJawaban.answers;
-    Object.keys(answers).forEach(idx => {
-      // langsung tandai soal yang sudah dijawab
-      const i = parseInt(idx);
-      if (!isNaN(i)) {
-        // tandai di navigator
-        // renderNav() nanti tetap jalan, tapi ini memastikan warna tetap
-      }
-    });
-  }
-
-  // 🔹 Kalau ujian masih berlangsung → lanjutkan
-  const now = new Date();
-  if (examStartTime && soalEnd > now) {
-    document.getElementById("startSection").style.display = "none";
-    document.getElementById("examSection").style.display = "block";
-    renderQuestion();
-    renderNav();   // ⬅️ ditambah biar nav ikut ke-refresh
-    startTimer();
-  } else if (soalEnd <= now) {
-    document.querySelector(".container").innerHTML = "<p>❌ Waktu ujian telah berakhir.</p>";
+  if (!soalFound) {
+    document.querySelector(".container").innerHTML =
+      "<p>❌ Tidak ada soal aktif atau Anda tidak terdaftar untuk ujian ini.</p>";
     return;
   }
-    }
-      
-      setInterval(checkStartTime, 1000);
 
-      // tampilkan tombol atau pesan sesuai device
-      if (isiOS()) {
-        document.getElementById("iosMsg").style.display = "block";
-      } else if (isAndroid()) {
-        document.getElementById("fullscreenBtn").style.display = "block";
+  const jawabanDoc = await getDoc(doc(db, "jawaban", user.uid));
+  if (jawabanDoc.exists()) {
+    const dataJawaban = jawabanDoc.data();
+
+    // ambil waktu mulai ujian
+    if (dataJawaban.startedAt) {
+      if (typeof dataJawaban.startedAt.toDate === "function") {
+        examStartTime = dataJawaban.startedAt.toDate();
+      } else {
+        examStartTime = new Date(dataJawaban.startedAt);
       }
-    });
+    }
+
+    // ambil jawaban lama
+    if (dataJawaban.answers) {
+      answers = dataJawaban.answers;
+    }
+
+    const now = new Date();
+    if (examStartTime && soalEnd > now) {
+      // ⬅️ tetap tampilkan tombol start
+      document.getElementById("startSection").style.display = "block";
+      document.getElementById("examSection").style.display = "none";
+      document.getElementById("startMsg").innerText = "✅ Klik Mulai Ujian untuk melanjutkan";
+      document.getElementById("startBtn").disabled = false;
+    } else if (soalEnd <= now) {
+      document.querySelector(".container").innerHTML = "<p>❌ Waktu ujian telah berakhir.</p>";
+      return;
+    }
+  }
+
+  setInterval(checkStartTime, 1000);
+
+  // tampilkan tombol atau pesan sesuai device
+  if (isiOS()) {
+    document.getElementById("iosMsg").style.display = "block";
+  } else if (isAndroid()) {
+    document.getElementById("fullscreenBtn").style.display = "block";
+  }
+});
+
 
     function checkStartTime() {
       const now = new Date();
