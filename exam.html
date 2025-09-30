@@ -205,14 +205,12 @@ window.closeNavModal = function() {
       const btnFS = document.getElementById("fullscreenBtn");
       if (!document.fullscreenElement && isAndroid()) {
         logCheating("Keluar fullscreen");
-        btnFS.style.display = "block";)
+        btnFS.style.display = "block";
       
       // 🚨 Getar di Android
       if (navigator.vibrate) {
         navigator.vibrate([200, 100, 200]);
-      }
-    }
-  } else {
+      } else {
     btnFS.style.display = "none";
       }
 });
