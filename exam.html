@@ -267,6 +267,15 @@ window.closeNavModal = function() {
         started: false,
         submitted: false
       }, { merge: true });
+      // 🔹 cek apakah sudah pernah mulai ujian
+const jawabanDoc = await getDoc(doc(db, "jawaban", user.uid));
+if (jawabanDoc.exists() && jawabanDoc.data().startedAt) {
+  examStartTime = jawabanDoc.data().startedAt.toDate();
+  document.getElementById("startSection").style.display = "none";
+  document.getElementById("examSection").style.display = "block";
+  renderQuestion();
+  startTimer();
+        }
 
       soalData = shuffleArray(soalFound.soal.slice()); // slice() biar tidak mengubah aslinya
       const [jam, menit] = soalFound.jamMulai.split(":").map(Number);
@@ -303,7 +312,18 @@ window.closeNavModal = function() {
     }
 
     window.startExam = async function() {
-      examStartTime = new Date();   // ⬅️ catat waktu mulai ujian
+      examStartTime = new Date();   // waktu mulai ujian
+
+const user = auth.currentUser;
+if (user) {
+  await setDoc(doc(db, "jawaban", user.uid), {
+    started: true,
+    startedAt: examStartTime,   // ⬅️ simpan waktu mulai ke Firestore
+    lastActivity: new Date(),
+    submitted: false
+  }, { merge: true });
+}
+
       document.getElementById("startSection").style.display = "none";
       document.getElementById("examSection").style.display = "block";
       renderQuestion();
