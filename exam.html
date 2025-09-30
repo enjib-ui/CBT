@@ -202,15 +202,15 @@ window.closeNavModal = function() {
     };
 
     document.addEventListener("fullscreenchange", () => {
-  const btnFS = document.getElementById("fullscreenBtn");
-  if (!document.fullscreenElement && isAndroid()) {
-    logCheating("Keluar fullscreen");
-    btnFS.style.display = "block";
+      const btnFS = document.getElementById("fullscreenBtn");
+      if (!document.fullscreenElement && isAndroid()) {
+        logCheating("Keluar fullscreen");
+        btnFS.style.display = "block";
 
-    // 🔊 Mainkan audio alert hanya jika user sudah klik startExam sebelumnya
+        // ==== Web Audio API boost ====
     const audioElem = document.getElementById("alertSound");
     if (audioElem) {
-      // pastikan AudioContext sudah di-resume (gesture dari startExam)
+      // buat AudioContext hanya sekali
       if (!window._alertCtx) {
         const Ctx = window.AudioContext || window.webkitAudioContext;
         window._alertCtx = new Ctx();
@@ -218,22 +218,23 @@ window.closeNavModal = function() {
         window._gainNode = window._alertCtx.createGain();
         window._sourceNode.connect(window._gainNode).connect(window._alertCtx.destination);
       }
-      window._alertCtx.resume().then(() => {
-        audioElem.currentTime = 0;
-        audioElem.play().catch(()=>{ console.log("Audio blocked"); });
-        window._gainNode.gain.value = 2.0; // cukup keras
-        audioElem.playbackRate = 1.2;     // lebih cepat
-      });
-    }
-
-    // 🚨 Getar di Android
-    if (navigator.vibrate) {
-      navigator.vibrate([200, 100, 200]);
+      // atur gain dan playback rate
+      window._gainNode.gain.value = 4.0;      // 2x lebih keras
+      audioElem.playbackRate = 1.2;           // lebih cepat/tinggi
+      // putar ulang dari awal
+      audioElem.currentTime = 0;
+      window._alertCtx.resume().catch(()=>{});
+      audioElem.play().catch(()=>{});
+      // 🚨 Getar di Android
+      if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200]);
+      }
     }
   } else {
     btnFS.style.display = "none";
-  }
+      }
 });
+
     // =====================
     // Exam logic
     // =====================
@@ -380,8 +381,9 @@ if (examStartTime && soalEnd > now) {
   audio.play().then(() => {
     audio.pause();
     audio.currentTime = 0;
-    audio.play().catch(()=>{ console.log("Audio play blocked"); });
-});
+  }).catch(()=>{})
+};
+    
 
     function startTimer() {
       timerInterval = setInterval(() => {
