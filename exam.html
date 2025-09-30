@@ -252,6 +252,12 @@ window.closeNavModal = function() {
         soalFound = data;
         soalFoundId = docSnap.id;
         soalMinSubmit = soalFound.minSubmit || 0;
+        // Ambil jadwal ujian dari Firestore
+if (soalFound.startTime && soalFound.endTime) {
+  soalStart = soalFound.startTime.toDate ? soalFound.startTime.toDate() : new Date(soalFound.startTime);
+  soalEnd   = soalFound.endTime.toDate ? soalFound.endTime.toDate() : new Date(soalFound.endTime);
+    }
+        
         break;
       }
     }
