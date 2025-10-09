@@ -109,7 +109,7 @@
   <div class="container">
     <div id="startSection">
       <p id="startMsg">⏳ Menunggu jadwal ujian...</p>
-      <button id="startBtn" onclick="startExam()" disabled>Mulai Ujian</button>
+      <button id="startBtn" onclick="openConfirmModal()" disabled>Mulai Ujian</button>
     </div>
 
     <div id="examSection" style="display:none;">
@@ -135,6 +135,18 @@
     <div id="navQ"></div>
   </div>
   </div>
+  <!-- 🪧 Modal konfirmasi sebelum mulai ujian -->
+<div id="confirmModal" class="modal">
+  <div class="modal-content">
+    <h3>Perhatian!</h3>
+    <p>
+      Dengan menekan <b>"Masuk Ujian"</b>, Anda akan masuk ke mode layar penuh
+      (fullscreen) dan <b>tidak diperbolehkan keluar</b> selama ujian berlangsung.
+    </p>
+    <button id="confirmYes" class="done">Masuk Ujian</button>
+    <button id="confirmNo">Batal</button>
+  </div>
+</div>
 
   <!-- 🔊 Suara alert ketika keluar fullscreen -->
   <audio id="alertSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
@@ -232,6 +244,30 @@ window.closeNavModal = function() {
     btnFS.style.display = "none";
       }
 });
+
+    // =========================
+// Modal konfirmasi ujian
+// =========================
+const confirmModal = document.getElementById('confirmModal');
+const confirmYes = document.getElementById('confirmYes');
+const confirmNo = document.getElementById('confirmNo');
+
+window.openConfirmModal = function() {
+  confirmModal.style.display = 'flex';
+};
+
+confirmYes.addEventListener('click', () => {
+  confirmModal.style.display = 'none';
+  // masuk fullscreen
+  if (isAndroid()) startFullscreen();
+  // lanjut ke fungsi start ujian asli
+  startExam();
+});
+
+confirmNo.addEventListener('click', () => {
+  confirmModal.style.display = 'none';
+});
+    
 
     // =====================
     // Exam logic
