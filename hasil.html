@@ -32,6 +32,7 @@
     <input type="text" id="mapelInput" placeholder="Mapel (misal: matematika)">
     <button onclick="loadHasil()">Tampilkan Hasil</button>
     <button onclick="exportExcel()" style="background:green;">⬇️ Ekspor Excel</button>
+    <button onclick="hapusHasil()" style="background:#e74c3c;">🗑️ Hapus Hasil</button>
   </div>
 
   <table id="hasilTable">
@@ -52,7 +53,14 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-    import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    import { 
+      getFirestore, 
+      collection, 
+      getDocs, 
+      doc, 
+      getDoc, 
+      deleteDoc 
+    } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDonmsxOpPSafblXFwjZozjQjb6d_ONDG8",
@@ -66,6 +74,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // 🔹 Menampilkan hasil ujian
     window.loadHasil = async function() {
       const kelas = document.getElementById("kelasInput").value.trim();
       const mapel = document.getElementById("mapelInput").value.trim();
@@ -120,23 +129,45 @@
     // ✅ Fungsi ekspor Excel
     window.exportExcel = function() {
       const table = document.getElementById("hasilTable");
-
-      // ambil kelas & mapel dari input
       const kelas = document.getElementById("kelasInput").value.trim() || "kelas";
       const mapel = document.getElementById("mapelInput").value.trim() || "mapel";
-
-      // ambil tanggal hari ini (format YYYY-MM-DD)
       const today = new Date();
       const yyyy = today.getFullYear();
       const mm = String(today.getMonth() + 1).padStart(2, "0");
       const dd = String(today.getDate()).padStart(2, "0");
       const tanggal = `${yyyy}-${mm}-${dd}`;
-
-      // nama file akhir
       const fileName = `hasil_${kelas}_${mapel}_${tanggal}.xlsx`;
-
       const wb = XLSX.utils.table_to_book(table, { sheet: "Hasil Ujian" });
       XLSX.writeFile(wb, fileName);
+    };
+
+    // 🗑️ Fungsi Hapus Hasil Ujian berdasarkan kelas & mapel
+    window.hapusHasil = async function () {
+      const kelas = document.getElementById("kelasInput").value.trim();
+      const mapel = document.getElementById("mapelInput").value.trim();
+      if (!kelas || !mapel) {
+        alert("⚠️ Isi kelas dan mapel dulu!");
+        return;
+      }
+
+      if (!confirm(`Yakin ingin menghapus semua hasil ujian untuk ${kelas} - ${mapel}?`)) {
+        return;
+      }
+
+      const usersSnap = await getDocs(collection(db, "users"));
+      const jawabanSnap = await getDocs(collection(db, "jawaban"));
+
+      let totalHapus = 0;
+      for (const docSnap of jawabanSnap.docs) {
+        const user = usersSnap.docs.find(u => u.id === docSnap.id)?.data();
+        if (user && user.kelas === kelas) {
+          await deleteDoc(doc(db, "jawaban", docSnap.id));
+          totalHapus++;
+        }
+      }
+
+      alert(`✅ ${totalHapus} hasil ujian berhasil dihapus.`);
+      loadHasil(); // Refresh tabel
     };
   </script>
 </body>
