@@ -321,6 +321,7 @@ submitNo.addEventListener('click', () => {
     // Jika sudah submit jawaban
     document.querySelector(".container").style.display = "none";
     document.getElementById("examFinished").style.display = "block";
+    document.getElementById("startBtn").style.display = "none";
     return; // Hentikan proses load soal
   }
       
@@ -434,7 +435,18 @@ if (examStartTime && soalEnd > now) {
     }
 
     window.startExam = async function() {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  // 🔒 Cek apakah user sudah submit jawaban
+  const jawabanDoc = await getDoc(doc(db, "jawaban", user.uid));
+  if (jawabanDoc.exists() && jawabanDoc.data().submitted) {
+    alert("❌ Anda sudah menyelesaikan ujian. Soal tidak dapat diakses kembali.");
+    return; // stop proses masuk ke soal
+  }
+
   if (isAndroid()) startFullscreen();
+      
 
   // kalau examStartTime sudah ada (login ulang), jangan direset
   if (!examStartTime) {
