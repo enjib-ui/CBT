@@ -111,11 +111,6 @@
       <p id="startMsg">⏳ Menunggu jadwal ujian...</p>
       <button id="startBtn" onclick="openConfirmModal()" disabled>Mulai Ujian</button>
     </div>
-    <!-- ✅ Tampilan setelah siswa sudah submit -->
-<div id="examFinished" style="display:none; text-align:center; padding:30px;">
-  <h2>✅ Ujian Telah Diselesaikan</h2>
-  <p>Anda sudah mengirim jawaban. Soal tidak dapat diakses kembali.</p>
-</div>
 
     <div id="examSection" style="display:none;">
       <div id="question"></div>
@@ -315,16 +310,6 @@ submitNo.addEventListener('click', () => {
       const userDoc = await getDoc(doc(db, "users", user.uid));
       if (!userDoc.exists()) { logout(); return; }
       const kelasUser = userDoc.data().kelas;
-        // 🔐 CEK STATUS UJIAN SISWA
-  const jawabanDoc = await getDoc(doc(db, "jawaban", user.uid));
-  if (jawabanDoc.exists() && jawabanDoc.data().submitted) {
-    // Jika sudah submit jawaban
-    document.querySelector(".container").style.display = "none";
-    document.getElementById("examFinished").style.display = "block";
-    document.getElementById("startBtn").style.display = "none";
-    return; // Hentikan proses load soal
-  }
-      
 
       const snapshot = await getDocs(collection(db, "soal"));
       for (const docSnap of snapshot.docs) {
@@ -435,18 +420,7 @@ if (examStartTime && soalEnd > now) {
     }
 
     window.startExam = async function() {
-  const user = auth.currentUser;
-  if (!user) return;
-
-  // 🔒 Cek apakah user sudah submit jawaban
-  const jawabanDoc = await getDoc(doc(db, "jawaban", user.uid));
-  if (jawabanDoc.exists() && jawabanDoc.data().submitted) {
-    alert("❌ Anda sudah menyelesaikan ujian. Soal tidak dapat diakses kembali.");
-    return; // stop proses masuk ke soal
-  }
-
   if (isAndroid()) startFullscreen();
-      
 
   // kalau examStartTime sudah ada (login ulang), jangan direset
   if (!examStartTime) {
