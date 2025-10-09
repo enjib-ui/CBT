@@ -120,7 +120,7 @@
   <button id="prevBtn" onclick="prevQuestion()">⬅️ Sebelum</button>
   <button id="nextBtn" onclick="nextQuestion()">Selanjutnya ➡️</button>
 </div>
-      <button id="submitBtn" onclick="submitExam()">Kirim Jawaban</button>
+      <button id="submitBtn" onclick="openSubmitConfirmModal()">Kirim Jawaban</button>
       <p id="submitMsg" style="color:green;font-weight:bold"></p>
       <!-- Tombol fullscreen (Android) -->
       <button id="fullscreenBtn" onclick="startFullscreen()">⛶ Kembali ke Fullscreen</button>
@@ -148,6 +148,19 @@
     <button id="confirmNo">Batal</button>
   </div>
 </div>
+  <!-- 📨 Modal konfirmasi kirim jawaban -->
+<div id="submitConfirmModal" class="modal">
+  <div class="modal-content">
+    <h3>Konfirmasi Selesai Ujian</h3>
+    <p>
+      Setelah Anda menekan <b>"Kirim Jawaban"</b>, jawaban akan dikirim dan
+      <b>Anda tidak dapat kembali mengakses soal</b>. Pastikan semua jawaban sudah benar.
+    </p>
+    <button id="submitYes" class="done">Kirim Jawaban</button>
+    <button id="submitNo">Batal</button>
+  </div>
+</div>
+  
 
   <!-- 🔊 Suara alert ketika keluar fullscreen -->
   <audio id="alertSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
@@ -267,6 +280,25 @@ confirmYes.addEventListener('click', () => {
 
 confirmNo.addEventListener('click', () => {
   confirmModal.style.display = 'none';
+});
+// =========================
+// Modal konfirmasi submit jawaban
+// =========================
+const submitConfirmModal = document.getElementById('submitConfirmModal');
+const submitYes = document.getElementById('submitYes');
+const submitNo = document.getElementById('submitNo');
+
+window.openSubmitConfirmModal = function() {
+  submitConfirmModal.style.display = 'flex';
+};
+
+submitYes.addEventListener('click', () => {
+  submitConfirmModal.style.display = 'none';
+  submitAnswers();  // panggil fungsi pengiriman jawaban asli
+});
+
+submitNo.addEventListener('click', () => {
+  submitConfirmModal.style.display = 'none';
 });
     
 
