@@ -360,7 +360,21 @@ submitNo.addEventListener('click', () => {
         submitted: false
       }, { merge: true });
 
-      soalData = shuffleArray(soalFound.soal.slice()); // slice() biar tidak mengubah aslinya
+      // 🔸 Pisahkan soal berdasarkan tipe
+const singleSoal = soalFound.soal.filter(q => q.tipe === "single");
+const multipleSoal = soalFound.soal.filter(q => q.tipe === "multiple");
+
+// 🔸 Acak masing-masing kelompok
+const singleAcak = shuffleArray(singleSoal);
+const multipleAcak = shuffleArray(multipleSoal);
+
+// 🔸 Gabungkan kembali sesuai urutan yang kamu inginkan
+// Jika ingin single dulu baru multiple
+soalData = [...singleAcak, ...multipleAcak];
+
+// Kalau ingin multiple dulu:
+// soalData = [...multipleAcak, ...singleAcak];
+    
       const [jam, menit] = soalFound.jamMulai.split(":").map(Number);
       soalStart = new Date();
       soalStart.setHours(jam, menit, 0, 0);
