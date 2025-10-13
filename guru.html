@@ -33,7 +33,6 @@
     <h2>Guru Panel</h2>
     <ul>
       <li onclick="showPage('upload')">📤 Upload Soal</li>
-      <li onclick="showPage('uploadGambar')">🖼️ Upload Gambar Soal</li>
       <li onclick="showPage('soal')">📚 Kelola Soal</li>
       <li onclick="showPage('siswa')">👩‍🎓 Kelola Siswa</li>
       <li onclick="showPage('logs')">📋 Log Pelanggaran</li>
@@ -52,15 +51,6 @@
       <input type="text" id="mapelInput" placeholder="Mapel (misal: matematika)" />
       <button onclick="uploadSoal()">Upload</button>
     </section>
-    <!-- Upload Gambar Soal -->
-<section id="uploadGambar" class="card" style="display:none;">
-  <h3>Upload Gambar Soal</h3>
-  <input type="file" id="gambarSoalInput" accept="image/*">
-  <input type="number" id="nomorSoalInput" placeholder="Nomor Soal (misal: 1)">
-  <input type="text" id="gambarSoalKelas" placeholder="Kelas (misal: kelas10)">
-  <input type="text" id="gambarSoalMapel" placeholder="Mapel (misal: matematika)">
-  <button onclick="uploadGambarSoal()">Upload Gambar</button>
-</section>
 
     <!-- Kelola Soal -->
     <section id="soal" class="card" style="display:none;">
@@ -161,7 +151,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
     import { getAuth, signOut, createUserWithEmailAndPassword, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
     import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-storage.js";
     import * as XLSX from "https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs";
 
     const firebaseConfig = {
@@ -176,8 +165,6 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    const storage = getStorage(app);
-    
     
     // === Import Siswa via Excel (fix header fleksibel + debug) ===
 window.importSiswaExcel = function() {
@@ -284,46 +271,6 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
-window.uploadGambarSoal = async function() {
-  const file = document.getElementById("gambarSoalInput").files[0];
-  const nomorSoal = document.getElementById("nomorSoalInput").value.trim();
-  const kelas = document.getElementById("gambarSoalKelas").value.trim();
-  const mapel = document.getElementById("gambarSoalMapel").value.trim();
-
-  if (!file || !nomorSoal || !kelas || !mapel) {
-    alert("Lengkapi semua kolom upload gambar!");
-    return;
-  }
-
-  const fileName = `${kelas}_${mapel}_${nomorSoal}_${file.name}`;
-  const storageRef = ref(storage, `soal-images/${fileName}`);
-
-  try {
-    await uploadBytes(storageRef, file);
-    const url = await getDownloadURL(storageRef);
-
-    // Simpan URL gambar ke dokumen soal
-    const soalDocRef = doc(db, "soal", `${kelas}_${mapel}`);
-    const soalDocSnap = await getDoc(soalDocRef);
-    if (soalDocSnap.exists()) {
-      const data = soalDocSnap.data();
-      const soalArray = data.soal || [];
-      const index = parseInt(nomorSoal) - 1;
-      if (soalArray[index]) {
-        soalArray[index].gambar = url;
-        await setDoc(soalDocRef, { soal: soalArray }, { merge: true });
-        alert("✅ Gambar berhasil diupload dan ditautkan ke soal " + nomorSoal);
-      } else {
-        alert("⚠️ Nomor soal tidak ditemukan.");
-      }
-    } else {
-      alert("❌ Soal tidak ditemukan untuk kelas/mapel ini.");
-    }
-  } catch (err) {
-    console.error(err);
-    alert("❌ Gagal upload gambar: " + err.message);
-  }
-};
 
 // === fungsi logout ===
 window.logout = async function() {
