@@ -96,6 +96,27 @@
     #fullscreenBtn { margin-top:10px; display:none; background:#f39c12; color:white;
                      padding:10px; border:none; border-radius:6px; width:100%; }
     #iosMsg { margin-top:10px; display:none; color:#c0392b; font-weight:bold; text-align:center; }
+    /* ✅ Tambahan untuk tampilan soal multiple answer */
+.option label {
+  display: inline-block;
+  margin: 5px 0;
+  cursor: pointer;
+}
+
+.option input[type="radio"],
+.option input[type="checkbox"] {
+  margin-right: 8px;
+  transform: scale(1.2);
+}
+
+.option input[type="checkbox"] {
+  accent-color: #3498db;
+}
+
+.option:hover {
+  background-color: #eef6ff;
+  border-radius: 6px;
+      }
   </style>
 </head>
 <body>
@@ -472,33 +493,68 @@ audio.play().then(() => {
     }
 
     function renderQuestion() {
-      if (soalData.length === 0) return;
-      document.getElementById("question").innerText = soalData[current].Pertanyaan;
-      const optsDiv = document.getElementById("opts");
-      optsDiv.innerHTML = "";
-      ["A","B","C","D","E"].forEach(opt => {
-  const btn = document.createElement("button");
-  btn.innerText = opt + ". " + (soalData[current][opt] || "");
+  if (soalData.length === 0) return;
+  document.getElementById("question").innerText = soalData[current].Pertanyaan;
+  const optsDiv = document.getElementById("opts");
+  optsDiv.innerHTML = "";
 
-  // jika tipe soal multiple, cek array
-  if (soalData[current].tipe === "multiple") {
-    if (answers[current] && answers[current].includes(opt)) {
-      btn.classList.add("selected");
+  ["A","B","C","D","E"].forEach(opt => {
+    const pilihanText = soalData[current][opt];
+    if (!pilihanText) return; // skip jika kosong
+
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("option");
+    wrapper.style.marginBottom = "8px";
+
+    if (soalData[current].tipe === "multiple") {
+      // Gunakan checkbox
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.id = `opt-${opt}`;
+      checkbox.name = `opt-${opt}`;
+      checkbox.value = opt;
+
+      if (answers[current] && answers[current].includes(opt)) {
+        checkbox.checked = true;
+      }
+
+      checkbox.onchange = () => toggleOption(opt);
+
+      const label = document.createElement("label");
+      label.setAttribute("for", `opt-${opt}`);
+      label.innerText = ` ${opt}. ${pilihanText}`;
+
+      wrapper.appendChild(checkbox);
+      wrapper.appendChild(label);
+    } else {
+      // Gunakan radio untuk single choice
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.id = `opt-${opt}`;
+      radio.name = `opt-group-${current}`;
+      radio.value = opt;
+
+      if (answers[current] === opt) {
+        radio.checked = true;
+      }
+
+      radio.onchange = () => selectOption(opt);
+
+      const label = document.createElement("label");
+      label.setAttribute("for", `opt-${opt}`);
+      label.innerText = ` ${opt}. ${pilihanText}`;
+
+      wrapper.appendChild(radio);
+      wrapper.appendChild(label);
     }
-    btn.onclick = () => toggleOption(opt); // bukan selectOption tunggal
-  } else {
-    // single choice seperti biasa
-    if (answers[current] === opt) btn.classList.add("selected");
-    btn.onclick = () => selectOption(opt);
-  }
 
-  optsDiv.appendChild(btn);
-});
+    optsDiv.appendChild(wrapper);
+  });
 
-      // 🔹 Update tombol prev/next sesuai posisi soal
   document.getElementById("prevBtn").disabled = current === 0;
   document.getElementById("nextBtn").disabled = current === soalData.length - 1;
-    }
+   }
+    
     window.prevQuestion = function() {
   if (current > 0) {
     current--;
