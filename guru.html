@@ -616,11 +616,22 @@ window.logout = async function() {
         const workbook = XLSX.read(data, { type: "array" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet);
-        const soal = rows.map(row => ({
-          Pertanyaan: row.Pertanyaan || row.soal || "",
-          A: row.A || "", B: row.B || "", C: row.C || "",
-          D: row.D || "", E: row.E || "", JawabanBenar: row.JawabanBenar || row.kunci || ""
-        }));
+        const soal = rows.map(row => {
+  const kunciRaw = (row.JawabanBenar || row.kunci || "").toString().trim();
+  const tipe = kunciRaw.includes(",") ? "multiple" : "single"; // deteksi otomatis multiple
+
+  return {
+    Pertanyaan: row.Pertanyaan || row.soal || "",
+    A: row.A || "", 
+    B: row.B || "", 
+    C: row.C || "",
+    D: row.D || "", 
+    E: row.E || "", 
+    JawabanBenar: kunciRaw.split(",").map(k => k.trim().toLowerCase()),
+    tipe
+  };
+});
+    
         try {
           await setDoc(doc(db, "soal", `${kelas}_${mapel}`), { soal, aktif:false });
           alert("✅ Soal berhasil diupload");
