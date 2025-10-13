@@ -477,12 +477,24 @@ audio.play().then(() => {
       const optsDiv = document.getElementById("opts");
       optsDiv.innerHTML = "";
       ["A","B","C","D","E"].forEach(opt => {
-        const btn = document.createElement("button");
-        btn.innerText = opt + ". " + (soalData[current][opt] || "");
-        if (answers[current] === opt) btn.classList.add("selected");
-        btn.onclick = () => selectOption(opt);
-        optsDiv.appendChild(btn);
-      });
+  const btn = document.createElement("button");
+  btn.innerText = opt + ". " + (soalData[current][opt] || "");
+
+  // jika tipe soal multiple, cek array
+  if (soalData[current].tipe === "multiple") {
+    if (answers[current] && answers[current].includes(opt)) {
+      btn.classList.add("selected");
+    }
+    btn.onclick = () => toggleOption(opt); // bukan selectOption tunggal
+  } else {
+    // single choice seperti biasa
+    if (answers[current] === opt) btn.classList.add("selected");
+    btn.onclick = () => selectOption(opt);
+  }
+
+  optsDiv.appendChild(btn);
+});
+
       // 🔹 Update tombol prev/next sesuai posisi soal
   document.getElementById("prevBtn").disabled = current === 0;
   document.getElementById("nextBtn").disabled = current === soalData.length - 1;
@@ -508,6 +520,19 @@ window.nextQuestion = function() {
       renderNav();
       saveAnswer();
       checkAllAnswered();
+    }
+    function toggleOption(opt) {
+  if (!answers[current]) answers[current] = [];
+  const idx = answers[current].indexOf(opt);
+  if (idx === -1) {
+    answers[current].push(opt);
+  } else {
+    answers[current].splice(idx, 1);
+  }
+  renderQuestion();
+  renderNav();
+  saveAnswer();
+  checkAllAnswered();
     }
 
     // 🔹 Fungsi bantu untuk update warna nav soal
@@ -578,23 +603,56 @@ function updateNavButtonColor(index, answered) {
         started: true
       }, { merge: true });
     }
+    // ============================
+// 💯 Fungsi Penilaian Jawaban
+// ============================
+function hitungSkor() {
+  let skor = 0;
+  soalData.forEach((soal, i) => {
+    const kunci = soal.jawabanBenar; // string atau array
+    const jawaban = answers[i];
 
-    window.submitExam = async function() {
-      document.getElementById("submitBtn").disabled = true;
-      document.getElementById("submitMsg").innerText = "✅ Jawaban berhasil dikirim!";
-      clearInterval(timerInterval);
-
-      const user = auth.currentUser;
-      if (user) {
-        await setDoc(doc(db, "jawaban", user.uid), {
-          submitted: true,
-          finishedAt: new Date(),
-          lastActivity: new Date()
-        }, { merge: true });
+    if (soal.tipe === "multiple") {
+      // Jika soal multiple, cocokkan array jawaban
+      if (Array.isArray(jawaban) && Array.isArray(kunci)) {
+        if (arraySama(jawaban.sort(), kunci.sort())) {
+          skor++;
+        }
       }
-      logout();
-    };
+    } else {
+      // Jika soal single
+      if (jawaban === kunci) {
+        skor++;
+      }
+    }
+  });
+  return skor;
+}
 
+function arraySama(a, b) {
+  return a.length === b.length && a.every((v, i) => v === b[i]);
+    }
+    window.submitExam = async function() {
+  document.getElementById("submitBtn").disabled = true;
+  document.getElementById("submitMsg").innerText = "✅ Jawaban berhasil dikirim!";
+  clearInterval(timerInterval);
+
+  const user = auth.currentUser;
+  if (user) {
+    // 💯 Hitung skor sebelum simpan
+    const skorAkhir = hitungSkor();
+
+    await setDoc(doc(db, "jawaban", user.uid), {
+      submitted: true,
+      finishedAt: new Date(),
+      lastActivity: new Date(),
+      skor: skorAkhir
+    }, { merge: true });
+  }
+
+  logout();
+};
+    
     window.logout = async function() {
       await signOut(auth);
       window.location.href = "index.html";
