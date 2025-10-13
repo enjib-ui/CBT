@@ -508,48 +508,30 @@ audio.play().then(() => {
 
     function renderQuestion() {
   if (soalData.length === 0) return;
-
-  const questionDiv = document.getElementById("question");
-  questionDiv.innerHTML = "";
-
-  // 🔸 tampilkan teks soal
-  const soalText = document.createElement("p");
-  soalText.innerText = soalData[current].Pertanyaan;
-  questionDiv.appendChild(soalText);
-
-  // 🖼️ tampilkan gambar kalau ada URL gambar pada soal
-  if (soalData[current].gambar) {
-    const soalImg = document.createElement("img");
-    soalImg.src = soalData[current].gambar;
-    soalImg.alt = "Gambar Soal";
-    soalImg.style.maxWidth = "100%";
-    soalImg.style.margin = "10px 0";
-    soalImg.style.borderRadius = "8px";
-    soalImg.style.boxShadow = "0 2px 6px rgba(0,0,0,0.15)";
-    questionDiv.appendChild(soalImg);
-  }
-
-  // 🔹 tampilkan opsi jawaban
+  document.getElementById("question").innerText = soalData[current].Pertanyaan;
   const optsDiv = document.getElementById("opts");
   optsDiv.innerHTML = "";
 
   ["A","B","C","D","E"].forEach(opt => {
     const pilihanText = soalData[current][opt];
-    if (!pilihanText) return;
+    if (!pilihanText) return; // skip jika kosong
 
     const wrapper = document.createElement("div");
     wrapper.classList.add("option");
     wrapper.style.marginBottom = "8px";
 
     if (soalData[current].tipe === "multiple") {
+      // Gunakan checkbox
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.id = `opt-${opt}`;
       checkbox.name = `opt-${opt}`;
       checkbox.value = opt;
+
       if (answers[current] && answers[current].includes(opt)) {
         checkbox.checked = true;
       }
+
       checkbox.onchange = () => toggleOption(opt);
 
       const label = document.createElement("label");
@@ -559,14 +541,17 @@ audio.play().then(() => {
       wrapper.appendChild(checkbox);
       wrapper.appendChild(label);
     } else {
+      // Gunakan radio untuk single choice
       const radio = document.createElement("input");
       radio.type = "radio";
       radio.id = `opt-${opt}`;
       radio.name = `opt-group-${current}`;
       radio.value = opt;
+
       if (answers[current] === opt) {
         radio.checked = true;
       }
+
       radio.onchange = () => selectOption(opt);
 
       const label = document.createElement("label");
@@ -582,8 +567,7 @@ audio.play().then(() => {
 
   document.getElementById("prevBtn").disabled = current === 0;
   document.getElementById("nextBtn").disabled = current === soalData.length - 1;
-    }
-    
+   }
     
     window.prevQuestion = function() {
   if (current > 0) {
