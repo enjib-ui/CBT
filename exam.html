@@ -546,18 +546,28 @@ audio.play().then(() => {
       }, 1000);
     }
 
-  function renderQuestion() {
+function renderQuestion() {
   if (soalData.length === 0) return;
 
-  // 🆕 Tambahan: nomor soal
   const nomor = current + 1;
   const total = soalData.length;
   const pertanyaan = soalData[current].Pertanyaan;
+  
+  // 🆕 Jenis soal berdasarkan field tipe
+  let jenisSoal = "";
+  if (soalData[current].tipe === "single") {
+    jenisSoal = "Pilihan Ganda";
+  } else if (soalData[current].tipe === "multiple") {
+    jenisSoal = "Pilihan Ganda Kompleks";
+  } else {
+    jenisSoal = "Jenis Soal Tidak Dikenal";
+  }
 
-  // tampilkan nomor dan pertanyaan
+  // 🆕 Tampilkan nomor dan jenis soal
   document.getElementById("question").innerHTML = `
-    <div style="font-weight:bold; margin-bottom:8px; color:#3498db;">
-      Soal ${nomor} dari ${total}
+    <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-weight:bold;">
+      <div style="color:#3498db;">Soal ${nomor} dari ${total}</div>
+      <div style="color:#e67e22;">${jenisSoal}</div>
     </div>
     <div>${pertanyaan}</div>
   `;
@@ -619,7 +629,6 @@ audio.play().then(() => {
   document.getElementById("prevBtn").disabled = current === 0;
   document.getElementById("nextBtn").disabled = current === soalData.length - 1;
 }
-    
     window.prevQuestion = function() {
   if (current > 0) {
     current--;
