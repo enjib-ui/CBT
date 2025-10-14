@@ -59,8 +59,43 @@
   padding-bottom: 80px;       /* ruang untuk tombol bawah */
     }
     
-    header { background:#3498db; color:white; padding:12px;
-             display:flex; justify-content:space-between; align-items:center; font-size:18px; }
+    /* 🔹 Header container dua baris: Judul ujian & baris tombol */
+header {
+  background: #3498db;
+  color: white;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column; /* ubah jadi kolom */
+  align-items: center;
+}
+
+#examTitle {
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.header-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.header-bottom button {
+  background: #e74c3c;
+  border: none;
+  padding: 8px 12px;
+  color: white;
+  border-radius: 6px;
+}
+
+.timer {
+  font-weight: bold;
+  font-size: 18px;
+}
+
     header button { background:#e74c3c; border:none; padding:8px 12px; color:white; border-radius:6px; }
     .timer { font-weight:bold; }
     .container { padding:15px; }
@@ -121,10 +156,15 @@
 </head>
 <body>
   <header>
-    <span>Latihan Soal</span>
+  <!-- 🏷️ Judul Ujian di Paling Atas -->
+  <div id="examTitle">Latihan Soal Ujian</div>
+
+  <!-- 🔸 Baris Tombol Nomor Soal - Timer - Logout -->
+  <div class="header-bottom">
     <button onclick="openNavModal()">Nomor Soal</button>
     <span class="timer" id="timer">--:--</span>
     <button onclick="logout()">Logout</button>
+  </div>
   </header>
 
   <div class="container">
