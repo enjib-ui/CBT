@@ -546,22 +546,34 @@ audio.play().then(() => {
       }, 1000);
     }
 
-    function renderQuestion() {
+  function renderQuestion() {
   if (soalData.length === 0) return;
-  document.getElementById("question").innerText = soalData[current].Pertanyaan;
+
+  // 🆕 Tambahan: nomor soal
+  const nomor = current + 1;
+  const total = soalData.length;
+  const pertanyaan = soalData[current].Pertanyaan;
+
+  // tampilkan nomor dan pertanyaan
+  document.getElementById("question").innerHTML = `
+    <div style="font-weight:bold; margin-bottom:8px; color:#3498db;">
+      Soal ${nomor} dari ${total}
+    </div>
+    <div>${pertanyaan}</div>
+  `;
+
   const optsDiv = document.getElementById("opts");
   optsDiv.innerHTML = "";
 
   ["A","B","C","D","E"].forEach(opt => {
     const pilihanText = soalData[current][opt];
-    if (!pilihanText) return; // skip jika kosong
+    if (!pilihanText) return;
 
     const wrapper = document.createElement("div");
     wrapper.classList.add("option");
     wrapper.style.marginBottom = "8px";
 
     if (soalData[current].tipe === "multiple") {
-      // Gunakan checkbox
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.id = `opt-${opt}`;
@@ -581,7 +593,6 @@ audio.play().then(() => {
       wrapper.appendChild(checkbox);
       wrapper.appendChild(label);
     } else {
-      // Gunakan radio untuk single choice
       const radio = document.createElement("input");
       radio.type = "radio";
       radio.id = `opt-${opt}`;
@@ -607,7 +618,7 @@ audio.play().then(() => {
 
   document.getElementById("prevBtn").disabled = current === 0;
   document.getElementById("nextBtn").disabled = current === soalData.length - 1;
-   }
+}
     
     window.prevQuestion = function() {
   if (current > 0) {
