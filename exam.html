@@ -834,17 +834,28 @@ function arraySama(a, b) {
 
   const user = auth.currentUser;
   if (user) {
-    // 💯 Hitung skor sebelum simpan
-    const skorAkhir = hitungSkor();
-
+    // Simpan status ujian selesai
     await setDoc(doc(db, "jawaban", user.uid), {
       submitted: true,
       finishedAt: new Date(),
-      lastActivity: new Date(),
-      skor: skorAkhir
+      lastActivity: new Date()
     }, { merge: true });
+
+    // 🔹 Hapus akses siswa dari daftar allowedUsers di Firestore
+    if (soalFoundId) {
+      const soalRef = doc(db, "soal", soalFoundId);
+      const soalSnap = await getDoc(soalRef);
+      if (soalSnap.exists()) {
+        const data = soalSnap.data();
+        if (data.allowedUsers && Array.isArray(data.allowedUsers)) {
+          const updated = data.allowedUsers.filter(uid => uid !== user.uid);
+          await setDoc(soalRef, { allowedUsers: updated }, { merge: true });
+        }
+      }
+    }
   }
 
+  // Logout setelah akses dihapus
   logout();
 };
     
