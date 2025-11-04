@@ -269,7 +269,7 @@ window.addEventListener("DOMContentLoaded", () => {
   showPage(lastPage);
 
   // update sidebar agar aktif sesuai halaman
-  document.querySelectorAll('.sidebar a').forEach(link => {
+  document.querySelectorAll('.sidebar li').forEach(link => {
     link.classList.remove('active');
     if(link.getAttribute('onclick')?.includes(lastPage)) {
       link.classList.add('active');
@@ -290,6 +290,7 @@ window.logout = async function() {
     alert("❌ Gagal logout: " + err.message);
   }
 };
+    window.logout = logout;
     
     // ====== Kelola Soal ======
     async function loadSoal() {
