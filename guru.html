@@ -241,11 +241,6 @@ window.importSiswaExcel = function() {
     let currentKelas = "";
     let monitorInterval = null;
 
-    window.logout = async function() {
-      await signOut(auth);
-      window.location.href = "index.html";
-    };
-
 window.showPage = function(page) {
   // sembunyikan semua section
   document.querySelectorAll('.content section').forEach(sec => sec.style.display = "none");
@@ -282,18 +277,20 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// === fungsi logout ===
 window.logout = async function() {
+  const yakin = confirm("Yakin ingin logout?\nSemua progres yang belum disimpan akan hilang.");
+
+  if (!yakin) return;
+
   try {
-    await signOut(auth); // logout Firebase
-    localStorage.removeItem("activePage"); // bersihkan state
-    window.location.href = "index.html"; // arahkan ke halaman login
+    await signOut(auth);
+    localStorage.removeItem("activePage");
+    window.location.href = "index.html";
   } catch (err) {
     alert("❌ Gagal logout: " + err.message);
   }
 };
     
-
     // ====== Kelola Soal ======
     async function loadSoal() {
       const tbody = document.querySelector("#soalTable tbody");
