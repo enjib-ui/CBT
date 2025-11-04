@@ -277,20 +277,20 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-window.logout = async function() {
+function logout() {
   const yakin = confirm("Yakin ingin logout?\nSemua progres yang belum disimpan akan hilang.");
-
   if (!yakin) return;
 
-  try {
-    await signOut(auth);
+  signOut(auth).then(() => {
     localStorage.removeItem("activePage");
     window.location.href = "index.html";
-  } catch (err) {
+  }).catch(err => {
     alert("❌ Gagal logout: " + err.message);
-  }
-};
-    window.logout = logout;
+  });
+}
+
+// expose ke global (karena module)
+window.logout = logout;
     
     // ====== Kelola Soal ======
     async function loadSoal() {
