@@ -249,7 +249,7 @@ header {
     <button id="nextBtn" onclick="nextQuestion()">Selanjutnya ➡️</button>
   </div>
 
-  <button id="submitBtn" onclick="submitExam()">Kirim Jawaban</button>
+  <button id="submitBtn" onclick="openSubmitConfirmModal()">Kirim Jawaban</button>
   <p id="submitMsg" style="color:green;font-weight:bold"></p>
 
   <!-- Tombol fullscreen & pesan iOS tetap -->
@@ -756,11 +756,19 @@ function updateNavButtonColor(index, answered) {
     }
 
     function checkAllAnswered() {
-      if (Object.keys(answers).length === soalData.length) {
-        document.getElementById("submitBtn").style.display = "block";
-        updateSubmitBtnState();
-      }
+  // Hitung hanya jawaban yang benar-benar terisi
+  const answeredCount = Object.keys(answers).filter(i => {
+    const j = answers[i];
+    if (Array.isArray(j)) return j.length > 0; // multiple answer harus ada isi
+    return j !== undefined && j !== null && j !== ""; // single answer
+  }).length;
+
+  if (answeredCount === soalData.length) {
+    document.getElementById("submitBtn").style.display = "block";
+    updateSubmitBtnState();
+  }
     }
+    
     function updateSubmitBtnState() {
   const submitBtn = document.getElementById("submitBtn");
   if (!soalStart || !soalEnd || !examStartTime) return; // ambil jadwal dari guru
