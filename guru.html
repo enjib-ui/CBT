@@ -146,6 +146,16 @@
       <button class="danger" onclick="closePopup()">Batal</button>
     </div>
   </div>
+  <div id="resetPopup" class="popup">
+  <div class="popup-content">
+    <h3>Reset Data Ujian</h3>
+    <p>Pilih siswa yang datanya ingin di-reset</p>
+    <div id="resetSiswaList" class="siswa-list"></div>
+    <br>
+    <button onclick="resetSelected()">Reset Data</button>
+    <button class="danger" onclick="closeResetPopup()">Batal</button>
+  </div>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
@@ -295,11 +305,13 @@ window.logout = async function() {
           <td>${docSnap.id}</td>
           <td>${data.aktif ? "Aktif" : "Nonaktif"}</td>
           <td>
-            ${data.aktif
-              ? `<button class="secondary" onclick="nonaktifkanSoal('${docSnap.id}')">Nonaktifkan</button>`
-              : `<button onclick="bukaPopup('${docSnap.id}')">Aktifkan</button>`}
-            <button class="danger" onclick="hapusSoal('${docSnap.id}')">Hapus</button>
-          </td>
+  ${data.aktif
+    ? `<button class="secondary" onclick="nonaktifkanSoal('${docSnap.id}')">Nonaktifkan</button>`
+    : `<button onclick="bukaPopup('${docSnap.id}')">Aktifkan</button>`}
+  <button onclick="popupReset('${docSnap.id}')">🔄 Reset Data</button>
+  <button class="danger" onclick="hapusSoal('${docSnap.id}')">Hapus</button>
+</td>
+
         </tr>`;
         tbody.innerHTML += row;
       });
@@ -640,6 +652,68 @@ window.logout = async function() {
       };
       reader.readAsArrayBuffer(fileInput.files[0]);
     };
+    let resetSoalId = null;
+
+window.popupReset = async function(soalId) {
+  resetSoalId = soalId;
+
+  const siswaList = document.getElementById("resetSiswaList");
+  siswaList.innerHTML = "<p>Loading...</p>";
+
+  const usersSnap = await getDocs(collection(db, "users"));
+  const jawabanSnap = await getDocs(collection(db, "jawaban"));
+
+  const siswaData = {};
+
+  jawabanSnap.forEach(j => {
+    const d = j.data();
+    if (d.soalId === soalId) {
+      siswaData[j.id] = true;
+    }
+  });
+
+  let html = "";
+  usersSnap.forEach(u => {
+    const data = u.data();
+    if (data.role === "siswa" && siswaData[u.id]) {
+      html += `<label><input type="checkbox" value="${u.id}"> ${data.nama} (${data.kelas})</label>`;
+    }
+  });
+
+  if (!html) html = "<p>Belum ada siswa yang memiliki jawaban</p>";
+
+  siswaList.innerHTML = html;
+  document.getElementById("resetPopup").style.display = "flex";
+};
+
+window.closeResetPopup = function() {
+  document.getElementById("resetPopup").style.display = "none";
+};
+
+// ✅ Reset data jawaban siswa (tanpa hapus permanen)
+window.resetSelected = async function() {
+  const selected = [...document.querySelectorAll("#resetSiswaList input:checked")].map(cb => cb.value);
+
+  if (selected.length === 0) {
+    alert("Pilih minimal 1 siswa!");
+    return;
+  }
+
+  for (const uid of selected) {
+    await setDoc(doc(db, "jawaban", uid), {
+      started: false,
+      submitted: false,
+      answers: {},
+      lastActivity: null,
+      startedAt: null,
+      finishedAt: null
+    }, { merge: true });
+  }
+
+  alert("✅ Data siswa berhasil di-reset");
+  closeResetPopup();
+};
+          
   </script>
 </body>
   </html>
