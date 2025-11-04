@@ -38,7 +38,7 @@
       <li onclick="showPage('logs')">📋 Log Pelanggaran</li>
       <li onclick="showPage('monitor')">🖥️ Monitoring Ujian</li>
       <li onclick="window.location.href='hasil.html'">📊 Hasil Ujian</li>
-      <li id="btnLogout">🚪 Logout</li>
+      <li><button id="btnLogout" style="all:unset; cursor:pointer; color:white;">🚪 Logout</button></li>
     </ul>
   </div>
 
@@ -713,6 +713,10 @@ window.resetSelected = async function() {
   loadSoal();
   closeResetPopup();
 };
+    document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("btnLogout").addEventListener("click", logout);
+});
+  
           
   </script>
 </body>
