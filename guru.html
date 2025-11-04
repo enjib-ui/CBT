@@ -38,7 +38,7 @@
       <li onclick="showPage('logs')">📋 Log Pelanggaran</li>
       <li onclick="showPage('monitor')">🖥️ Monitoring Ujian</li>
       <li onclick="window.location.href='hasil.html'">📊 Hasil Ujian</li>
-      <li onclick="logout()">🚪 Logout</li>
+      <li id="btnLogout">🚪 Logout</li>
     </ul>
   </div>
 
@@ -291,6 +291,7 @@ function logout() {
 
 // expose ke global (karena module)
 window.logout = logout;
+document.getElementById("btnLogout").addEventListener("click", logout);
     
     // ====== Kelola Soal ======
     async function loadSoal() {
