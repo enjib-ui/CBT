@@ -686,7 +686,6 @@ if (!soal.kiri) {
 
   if (!answers[current]) answers[current] = {};
 
-  const soal = soalData[current];
   const kananAcak = shuffleArray(soal.kanan);
 
   soal.kiri.forEach(k => {
@@ -726,6 +725,10 @@ if (!soal.kiri) {
   } else {
     jenisSoal = "Jenis Soal Tidak Dikenal";
   }
+  else if (soalData[current].tipe === "matching") {
+  jenisSoal = "Menjodohkan";
+  }
+  
 
   document.getElementById("question").innerHTML = `
   <div class="label-tipe">${jenisSoal}</div>
@@ -926,37 +929,42 @@ const answeredCount = soalData.filter((soal, i) => {
 // ============================
 function hitungSkor() {
   let skor = 0;
+
   soalData.forEach((soal, i) => {
-    const kunci = soal.jawabanBenar; // string atau array
     const jawaban = answers[i];
 
     if (soal.tipe === "multiple") {
-  if (Array.isArray(jawaban) && Array.isArray(soal.jawabanBenar)) {
-    if (arraySama(jawaban.sort(), soal.jawabanBenar.sort())) {
-      skor++;
-    }
-  }
-}
-else if (soal.tipe === "matching") {
-  let benar = true;
-  for (let k in soal.jawabanBenar) {
-    if (jawaban[k] !== soal.jawabanBenar[k]) {
-      benar = false;
-      break;
-    }
-  }
-  if (benar) skor++;
-}
-else {
-  if (jawaban === soal.jawabanBenar) {
-    skor++;
-  }
+      if (Array.isArray(jawaban) && Array.isArray(soal.jawabanBenar)) {
+        if (arraySama(jawaban.sort(), soal.jawabanBenar.sort())) {
+          skor++;
+        }
       }
-    
+    }
+    else if (soal.tipe === "matching") {
+      let benar = true;
+      for (let k in soal.jawabanBenar) {
+        if (jawaban[k] !== soal.jawabanBenar[k]) {
+          benar = false;
+          break;
+        }
+      }
+      if (benar) skor++;
+    }
+    else {
+      if (jawaban === soal.jawabanBenar) {
+        skor++;
+      }
+    }
+  });
 
+  return skor;
+}
+
+// ✅ HARUS di LUAR hitungSkor
 function arraySama(a, b) {
   return a.length === b.length && a.every((v, i) => v === b[i]);
-    }
+}
+    
     window.submitExam = async function() {
   document.getElementById("submitBtn").disabled = true;
   document.getElementById("submitMsg").innerText = "✅ Jawaban berhasil dikirim!";
