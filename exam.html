@@ -707,7 +707,6 @@ if (!soal.kiri) {
   });
 
   setTimeout(restoreLines, 100);
-  return;
 }
   
 // ==========================================
@@ -722,19 +721,19 @@ if (!soal.kiri) {
     jenisSoal = "Pilihan Ganda";
   } else if (soalData[current].tipe === "multiple") {
     jenisSoal = "Pilihan Ganda Kompleks";
+    else if (soalData[current].tipe === "matching") {
+  jenisSoal = "Menjodohkan";
+  }
   } else {
     jenisSoal = "Jenis Soal Tidak Dikenal";
   }
-  else if (soalData[current].tipe === "matching") {
-  jenisSoal = "Menjodohkan";
-  }
   
-
   document.getElementById("question").innerHTML = `
   <div class="label-tipe">${jenisSoal}</div>
   <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
   <div>${pertanyaan}</div>
 `;
+  return;
   document.getElementById("matchingContainer").style.display = "none";
 
   const optsDiv = document.getElementById("opts");
@@ -850,10 +849,17 @@ function renderNav() {
     const btn = document.createElement("button");
     btn.innerText = i + 1;
 
-    const ans = answers[i];
-    const isAnswered =
-      (Array.isArray(ans) && ans.length > 0) ||
-      (typeof ans === "string" && ans !== "");
+    let isAnswered = false;
+
+if (soal.tipe === "matching") {
+  isAnswered = ans && Object.keys(ans).length === soal.kiri.length;
+}
+else if (Array.isArray(ans)) {
+  isAnswered = ans.length > 0;
+}
+else if (typeof ans === "string") {
+  isAnswered = ans !== "";
+}
 
     if (isAnswered) btn.classList.add("done");
 
