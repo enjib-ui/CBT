@@ -654,6 +654,8 @@ audio.play().then(() => {
     }
 
 function renderQuestion() {
+  document.getElementById("opts").innerHTML = "";
+  document.getElementById("matchingContainer").style.display = "flex";
   if (soalData.length === 0) return;
   // ================= MATCHING =================
 if (soalData[current].tipe === "matching") {
@@ -671,9 +673,6 @@ if (!soal.kiri) {
     soal.jawabanBenar[p.kiri] = p.kanan;
   });
 }
-  
-  document.getElementById("opts").innerHTML = "";
-  document.getElementById("matchingContainer").style.display = "flex";
 
   const kiriDiv = document.getElementById("matchingLeft");
   const kananDiv = document.getElementById("matchingRight");
@@ -717,16 +716,19 @@ if (!soal.kiri) {
   
   // 🆕 Jenis soal berdasarkan field tipe
   let jenisSoal = "";
-  if (soalData[current].tipe === "single") {
-    jenisSoal = "Pilihan Ganda";
-  } else if (soalData[current].tipe === "multiple") {
-    jenisSoal = "Pilihan Ganda Kompleks";
-    else if (soalData[current].tipe === "matching") {
+
+if (soalData[current].tipe === "single") {
+  jenisSoal = "Pilihan Ganda";
+}
+else if (soalData[current].tipe === "multiple") {
+  jenisSoal = "Pilihan Ganda Kompleks";
+}
+else if (soalData[current].tipe === "matching") {
   jenisSoal = "Menjodohkan";
-  }
-  } else {
-    jenisSoal = "Jenis Soal Tidak Dikenal";
-  }
+}
+else {
+  jenisSoal = "Jenis Soal Tidak Dikenal";
+    }
   
   document.getElementById("question").innerHTML = `
   <div class="label-tipe">${jenisSoal}</div>
@@ -734,6 +736,7 @@ if (!soal.kiri) {
   <div>${pertanyaan}</div>
 `;
   return;
+}
   document.getElementById("matchingContainer").style.display = "none";
 
   const optsDiv = document.getElementById("opts");
@@ -849,17 +852,41 @@ function renderNav() {
     const btn = document.createElement("button");
     btn.innerText = i + 1;
 
-    let isAnswered = false;
+    const ans = answers[i];
+let isAnswered = false;
 
 if (soal.tipe === "matching") {
-  isAnswered = ans && Object.keys(ans).length === soal.kiri.length;
+
+  // ✅ pastikan opsi lama hilang
+  document.getElementById("opts").innerHTML = "";
+
+  // ✅ tampilkan container matching
+  const mc = document.getElementById("matchingContainer");
+  mc.style.display = "flex";
+
+  kiriDiv.innerHTML = "";
+  kananDiv.innerHTML = "";
+
+  soal.kiri.forEach(k => {
+    kiriDiv.innerHTML += `<div class="kiri">${k}</div>`;
+  });
+
+  soal.kanan.forEach(v => {
+    kananDiv.innerHTML += `<div class="kanan">${v}</div>`;
+  });
+
+  // ✅ header soal TIDAK bentrok
+  document.getElementById("question").innerHTML = `
+    <div class="label-tipe">Menjodohkan</div>
+    <div class="soal-nomor">Soal ${current+1} dari ${soalData.length}</div>
+    <div>${soal.Pertanyaan}</div>
+  `;
+
+  return;
 }
-else if (Array.isArray(ans)) {
-  isAnswered = ans.length > 0;
-}
-else if (typeof ans === "string") {
-  isAnswered = ans !== "";
-}
+    // ✅ soal selain matching
+document.getElementById("matchingContainer").style.display = "none";
+    
 
     if (isAnswered) btn.classList.add("done");
 
