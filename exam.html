@@ -994,31 +994,62 @@ function arraySama(a, b) {
     document.addEventListener("copy", e => e.preventDefault());
     document.addEventListener("cut", e => e.preventDefault());
     document.addEventListener("paste", e => e.preventDefault());
-    function pilihKiri(k) {
+    // pilihKiri tetap sama (tidak perlu diubah)
+function pilihKiri(k) {
   document.querySelectorAll(".match-item").forEach(i => i.classList.remove("active"));
   selectedLeft = k;
   document.getElementById("left-" + k)?.classList.add("active");
 }
 
+// ----- gantikan pilihKanan -----
 function pilihKanan(j) {
   if (!selectedLeft) return;
 
-  if (answers[current][selectedLeft]) hapusGaris(selectedLeft);
+  // Pastikan answers[current] ada
+  if (!answers[current]) answers[current] = {};
 
+  // Cek apakah jawaban kanan 'j' sedang dipakai oleh kiri lain
+  const prevLeft = Object.keys(answers[current]).find(k => answers[current][k] === j);
+
+  // Jika dipakai oleh kiri yang berbeda, hapus mapping lama terlebih dulu
+  if (prevLeft && prevLeft !== selectedLeft) {
+    hapusGaris(prevLeft);
+  }
+
+  // Jika left ini sebelumnya punya pairing, hapus garis lama
+  if (answers[current][selectedLeft]) {
+    hapusGaris(selectedLeft);
+  }
+
+  // Simpan pairing baru
   answers[current][selectedLeft] = j;
   gambarGaris(selectedLeft, j);
 
+  // reset selectedLeft
   selectedLeft = null;
+
+  // simpan & update UI
   saveAnswer();
   renderNav();
   checkAllAnswered();
 }
 
+// ----- gantikan gambarGaris -----
 function gambarGaris(kiri, kanan) {
   const svg = document.getElementById("matchingLines");
-  const l = document.getElementById("left-" + kiri).getBoundingClientRect();
-  const r = document.getElementById("right-" + kanan).getBoundingClientRect();
+  const leftEl = document.getElementById("left-" + kiri);
+  const rightEl = document.getElementById("right-" + kanan);
+
+  if (!leftEl || !rightEl || !svg) return;
+
+  const l = leftEl.getBoundingClientRect();
+  const r = rightEl.getBoundingClientRect();
   const s = svg.getBoundingClientRect();
+
+  // jika sudah ada garis untuk kiri ini, hapus dulu
+  if (matchLines[kiri]) {
+    try { matchLines[kiri].remove(); } catch(e){}
+  }
 
   const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
   line.setAttribute("x1", l.right - s.left);
@@ -1028,24 +1059,85 @@ function gambarGaris(kiri, kanan) {
   line.setAttribute("stroke", "#3498db");
   line.setAttribute("stroke-width", "3");
 
+  // Simpan referensi untuk nanti dihapus
   svg.appendChild(line);
   matchLines[kiri] = line;
+
+  // Tandai elemen kanan & kiri sebagai terpakai
+  rightEl.classList.add("used");
+  leftEl.classList.add("used");
 }
 
+// ----- gantikan hapusGaris -----
 function hapusGaris(kiri) {
+  if (!answers[current]) answers[current] = {};
+
+  // Ambil pasangan kanan sebelum dihapus (jika ada)
+  const kanan = answers[current][kiri];
+
+  // Hapus garis SVG kalau ada
   if (matchLines[kiri]) {
-    matchLines[kiri].remove();
+    try { matchLines[kiri].remove(); } catch(e){}
     delete matchLines[kiri];
   }
+
+  // Hapus tanda used pada elemen kanan (kalau ada)
+  if (kanan) {
+    const rightEl = document.getElementById("right-" + kanan);
+    if (rightEl) rightEl.classList.remove("used");
+  }
+
+  // Hapus tanda used pada elemen kiri
+  const leftEl = document.getElementById("left-" + kiri);
+  if (leftEl) leftEl.classList.remove("used");
+
+  // Hapus mapping answers untuk kiri ini
+  if (answers[current] && answers[current][kiri]) {
+    delete answers[current][kiri];
+  }
+
+  // Simpan perubahan & update nav
+  saveAnswer();
+  renderNav();
+  checkAllAnswered();
 }
 
+// ----- gantikan restoreLines -----
 function restoreLines() {
+  // Pastikan ada mapping tersimpan untuk soal kini
   if (!answers[current]) return;
-  Object.keys(answers[current]).forEach(k => {
-    gambarGaris(k, answers[current][k]);
+
+  // Hapus semua garis lama di DOM supaya tidak duplikat
+  Object.keys(matchLines).forEach(k => {
+    try { matchLines[k].remove(); } catch(e){}
+    delete matchLines[k];
   });
-                                                    }
-    
+
+  // Untuk setiap mapping kiri->kanan, gambar garis dan tandai elemen
+  Object.keys(answers[current]).forEach(k => {
+    const kanan = answers[current][k];
+    // Jika kanan masih ada di DOM (kalau id cocok), gambar garis
+    const leftEl = document.getElementById("left-" + k);
+    const rightEl = document.getElementById("right-" + kanan);
+    if (leftEl && rightEl) {
+      // beri jeda kecil supaya layout sudah stabil (dipanggil via setTimeout sebelumnya)
+      try {
+        gambarGaris(k, kanan);
+      } catch (e) {
+        // ignore
+      }
+    } else {
+      // kalau element tidak ditemukan (mis. opsi diacak ulang), hapus mapping
+      delete answers[current][k];
+    }
+  });
+
+  // simpan kalau ada perubahan (mis. mapping yang dihapus karena mismatch)
+  saveAnswer();
+  renderNav();
+  checkAllAnswered();
+    }
+  
   </script>
 </body>
   </html>
