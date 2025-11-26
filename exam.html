@@ -657,6 +657,21 @@ function renderQuestion() {
   if (soalData.length === 0) return;
   // ================= MATCHING =================
 if (soalData[current].tipe === "matching") {
+  const soal = soalData[current];
+
+// ✅ NORMALISASI DATA MATCHING (WAJIB)
+if (!soal.kiri) {
+  soal.kiri = [];
+  soal.kanan = [];
+  soal.jawabanBenar = {};
+
+  soal.pasangan.forEach(p => {
+    soal.kiri.push(p.kiri);
+    soal.kanan.push(p.kanan);
+    soal.jawabanBenar[p.kiri] = p.kanan;
+  });
+}
+  
   document.getElementById("opts").innerHTML = "";
   document.getElementById("matchingContainer").style.display = "flex";
 
@@ -695,7 +710,7 @@ if (soalData[current].tipe === "matching") {
   setTimeout(restoreLines, 100);
   return;
 }
-
+  
 // ==========================================
 
   const nomor = current + 1;
@@ -916,30 +931,28 @@ function hitungSkor() {
     const jawaban = answers[i];
 
     if (soal.tipe === "multiple") {
-      // Jika soal multiple, cocokkan array jawaban
-      if (Array.isArray(jawaban) && Array.isArray(kunci)) {
-        if (arraySama(jawaban.sort(), kunci.sort())) {
-          skor++;
-        }
-      }
-    } 
-    if (soal.tipe === "matching") {
+  if (Array.isArray(jawaban) && Array.isArray(soal.jawabanBenar)) {
+    if (arraySama(jawaban.sort(), soal.jawabanBenar.sort())) {
+      skor++;
+    }
+  }
+}
+else if (soal.tipe === "matching") {
   let benar = true;
   for (let k in soal.jawabanBenar) {
-    if (jawaban[k] !== soal.jawabanBenar[k]) benar = false;
+    if (jawaban[k] !== soal.jawabanBenar[k]) {
+      benar = false;
+      break;
+    }
   }
   if (benar) skor++;
-  return;
-                   }
-    else {
-      // Jika soal single
-      if (jawaban === kunci) {
-        skor++;
-      }
-    }
-  });
-  return skor;
 }
+else {
+  if (jawaban === soal.jawabanBenar) {
+    skor++;
+  }
+      }
+    
 
 function arraySama(a, b) {
   return a.length === b.length && a.every((v, i) => v === b[i]);
