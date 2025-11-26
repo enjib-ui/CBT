@@ -215,6 +215,37 @@ header {
   margin-bottom: 8px;
   font-size: 15px;
              }
+  /* ============================= */
+/* MATCHING (Klik – Garis) */
+/* ============================= */
+.matching-container {
+  display: flex;
+  position: relative;
+  min-height: 300px;
+  margin-top: 10px;
+}
+.matching-container .col {
+  width: 45%;
+}
+.matching-container svg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  left: 0;
+  top: 0;
+}
+.match-item {
+  padding: 10px;
+  margin: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #fff;
+}
+.match-item.active { background: #dff0ff; }
+.match-item.used { background: #e6ffe6; }
+  
     
   </style>
 </head>
@@ -239,9 +270,16 @@ header {
 
     <div id="examSection" style="display:none;">
   <div id="questionBox">
-    <div id="question"></div>
-    <div id="opts"></div>
+  <div id="question"></div>
+  <div id="opts"></div>
+
+  <!-- ✅ MATCHING CONTAINER -->
+  <div id="matchingContainer" class="matching-container" style="display:none;">
+    <div class="col kiri" id="matchingLeft"></div>
+    <svg id="matchingLines"></svg>
+    <div class="col kanan" id="matchingRight"></div>
   </div>
+</div>
 
   <!-- 🔹 Tombol navigasi soal -->
   <div id="navButtons" style="margin-top:15px; display:flex; justify-content:space-between;">
@@ -320,6 +358,8 @@ header {
     let soalData = [];
     let current = 0;
     let answers = {};
+    let selectedLeft = null;
+    let matchLines = {};
     let soalStart, soalEnd, timerInterval;
     let soalFound = null;
     let soalFoundId = null;
@@ -471,15 +511,14 @@ submitNo.addEventListener('click', () => {
       // 🔸 Pisahkan soal berdasarkan tipe
 const singleSoal = soalFound.soal.filter(q => q.tipe === "single");
 const multipleSoal = soalFound.soal.filter(q => q.tipe === "multiple");
+const matchingSoal = soalFound.soal.filter(q => q.tipe === "matching");
 
 // 🔸 Acak masing-masing kelompok
 const singleAcak = shuffleArray(singleSoal);
 const multipleAcak = shuffleArray(multipleSoal);
 
-// 🔸 Gabungkan kembali sesuai urutan yang kamu inginkan
-// Jika ingin single dulu baru multiple
-soalData = [...singleAcak, ...multipleAcak];
-
+const matchingAcak = shuffleArray(matchingSoal);
+soalData = [...singleAcak, ...multipleAcak, ...matchingAcak];
 // Kalau ingin multiple dulu:
 // soalData = [...multipleAcak, ...singleAcak];
     
@@ -616,6 +655,48 @@ audio.play().then(() => {
 
 function renderQuestion() {
   if (soalData.length === 0) return;
+  // ================= MATCHING =================
+if (soalData[current].tipe === "matching") {
+  document.getElementById("opts").innerHTML = "";
+  document.getElementById("matchingContainer").style.display = "flex";
+
+  const kiriDiv = document.getElementById("matchingLeft");
+  const kananDiv = document.getElementById("matchingRight");
+  const svg = document.getElementById("matchingLines");
+
+  kiriDiv.innerHTML = "";
+  kananDiv.innerHTML = "";
+  svg.innerHTML = "";
+  matchLines = {};
+
+  if (!answers[current]) answers[current] = {};
+
+  const soal = soalData[current];
+  const kananAcak = shuffleArray(soal.kanan);
+
+  soal.kiri.forEach(k => {
+    const d = document.createElement("div");
+    d.className = "match-item";
+    d.id = "left-" + k;
+    d.innerText = k;
+    d.onclick = () => pilihKiri(k);
+    kiriDiv.appendChild(d);
+  });
+
+  kananAcak.forEach(j => {
+    const d = document.createElement("div");
+    d.className = "match-item";
+    d.id = "right-" + j;
+    d.innerText = j;
+    d.onclick = () => pilihKanan(j);
+    kananDiv.appendChild(d);
+  });
+
+  setTimeout(restoreLines, 100);
+  return;
+}
+
+// ==========================================
 
   const nomor = current + 1;
   const total = soalData.length;
@@ -636,6 +717,7 @@ function renderQuestion() {
   <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
   <div>${pertanyaan}</div>
 `;
+  document.getElementById("matchingContainer").style.display = "none";
 
   const optsDiv = document.getElementById("opts");
   optsDiv.innerHTML = "";
@@ -771,11 +853,15 @@ function renderNav() {
 
     function checkAllAnswered() {
   // Hitung hanya jawaban yang benar-benar terisi
-  const answeredCount = Object.keys(answers).filter(i => {
-    const j = answers[i];
-    if (Array.isArray(j)) return j.length > 0; // multiple answer harus ada isi
-    return j !== undefined && j !== null && j !== ""; // single answer
-  }).length;
+const answeredCount = soalData.filter((soal, i) => {
+  const j = answers[i];
+  if (soal.tipe === "matching") {
+    return j && Object.keys(j).length === soal.kiri.length;
+  }
+  if (Array.isArray(j)) return j.length > 0;
+  return j !== undefined && j !== "";
+}).length;
+      
 
   if (answeredCount === soalData.length) {
     document.getElementById("submitBtn").style.display = "block";
@@ -836,7 +922,16 @@ function hitungSkor() {
           skor++;
         }
       }
-    } else {
+    } 
+    if (soal.tipe === "matching") {
+  let benar = true;
+  for (let k in soal.jawabanBenar) {
+    if (jawaban[k] !== soal.jawabanBenar[k]) benar = false;
+  }
+  if (benar) skor++;
+  return;
+                   }
+    else {
       // Jika soal single
       if (jawaban === kunci) {
         skor++;
@@ -899,6 +994,58 @@ function arraySama(a, b) {
     document.addEventListener("copy", e => e.preventDefault());
     document.addEventListener("cut", e => e.preventDefault());
     document.addEventListener("paste", e => e.preventDefault());
+    function pilihKiri(k) {
+  document.querySelectorAll(".match-item").forEach(i => i.classList.remove("active"));
+  selectedLeft = k;
+  document.getElementById("left-" + k)?.classList.add("active");
+}
+
+function pilihKanan(j) {
+  if (!selectedLeft) return;
+
+  if (answers[current][selectedLeft]) hapusGaris(selectedLeft);
+
+  answers[current][selectedLeft] = j;
+  gambarGaris(selectedLeft, j);
+
+  selectedLeft = null;
+  saveAnswer();
+  renderNav();
+  checkAllAnswered();
+}
+
+function gambarGaris(kiri, kanan) {
+  const svg = document.getElementById("matchingLines");
+  const l = document.getElementById("left-" + kiri).getBoundingClientRect();
+  const r = document.getElementById("right-" + kanan).getBoundingClientRect();
+  const s = svg.getBoundingClientRect();
+
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("x1", l.right - s.left);
+  line.setAttribute("y1", l.top + l.height / 2 - s.top);
+  line.setAttribute("x2", r.left - s.left);
+  line.setAttribute("y2", r.top + r.height / 2 - s.top);
+  line.setAttribute("stroke", "#3498db");
+  line.setAttribute("stroke-width", "3");
+
+  svg.appendChild(line);
+  matchLines[kiri] = line;
+}
+
+function hapusGaris(kiri) {
+  if (matchLines[kiri]) {
+    matchLines[kiri].remove();
+    delete matchLines[kiri];
+  }
+}
+
+function restoreLines() {
+  if (!answers[current]) return;
+  Object.keys(answers[current]).forEach(k => {
+    gambarGaris(k, answers[current][k]);
+  });
+                                                    }
+    
   </script>
 </body>
   </html>
