@@ -735,7 +735,6 @@ else {
   <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
   <div>${pertanyaan}</div>
 `;
-  return;
 }
   document.getElementById("matchingContainer").style.display = "none";
 
@@ -881,8 +880,6 @@ if (soal.tipe === "matching") {
     <div class="soal-nomor">Soal ${current+1} dari ${soalData.length}</div>
     <div>${soal.Pertanyaan}</div>
   `;
-
-  return;
 }
     // ✅ soal selain matching
 document.getElementById("matchingContainer").style.display = "none";
