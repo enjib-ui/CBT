@@ -735,7 +735,7 @@ else {
   <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
   <div>${pertanyaan}</div>
 `;
-}
+
   document.getElementById("matchingContainer").style.display = "none";
 
   const optsDiv = document.getElementById("opts");
@@ -852,49 +852,26 @@ function renderNav() {
     btn.innerText = i + 1;
 
     const ans = answers[i];
-let isAnswered = false;
+    let done = false;
 
-if (soal.tipe === "matching") {
+    if (soal.tipe === "matching")
+      done = ans && Object.keys(ans).length === soal.kiri?.length;
+    else if (Array.isArray(ans))
+      done = ans.length > 0;
+    else
+      done = !!ans;
 
-  // ✅ pastikan opsi lama hilang
-  document.getElementById("opts").innerHTML = "";
+    if (done) btn.classList.add("done");
 
-  // ✅ tampilkan container matching
-  const mc = document.getElementById("matchingContainer");
-  mc.style.display = "flex";
-
-  kiriDiv.innerHTML = "";
-  kananDiv.innerHTML = "";
-
-  soal.kiri.forEach(k => {
-    kiriDiv.innerHTML += `<div class="kiri">${k}</div>`;
-  });
-
-  soal.kanan.forEach(v => {
-    kananDiv.innerHTML += `<div class="kanan">${v}</div>`;
-  });
-
-  // ✅ header soal TIDAK bentrok
-  document.getElementById("question").innerHTML = `
-    <div class="label-tipe">Menjodohkan</div>
-    <div class="soal-nomor">Soal ${current+1} dari ${soalData.length}</div>
-    <div>${soal.Pertanyaan}</div>
-  `;
-}
-    // ✅ soal selain matching
-document.getElementById("matchingContainer").style.display = "none";
-    
-
-    if (isAnswered) btn.classList.add("done");
-
-    btn.dataset.index = i;
     btn.onclick = () => {
       current = i;
       renderQuestion();
+      closeNavModal();
     };
 
     nav.appendChild(btn);
   });
+}
 
   checkAllAnswered();
 }
