@@ -628,18 +628,29 @@ document.getElementById("btnLogout").addEventListener("click", logout);
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet);
         const soal = rows.map(row => {
-  const kunciRaw = (row.JawabanBenar || row.kunci || "").toString().trim();
-  const tipe = kunciRaw.includes(",") ? "multiple" : "single"; // deteksi otomatis multiple
+  const tipe = (row.Tipe || "").toLowerCase();
+
+  let jawaban = (row.JawabanBenar || "").toString().trim().toLowerCase();
+
+  // normalisasi jawaban benar/salah
+  if (tipe === "truefalse") {
+    jawaban = jawaban === "benar" ? ["a"] : ["b"];
+  } else {
+    jawaban = jawaban.split(",").map(j => j.trim().toLowerCase());
+  }
 
   return {
-    Pertanyaan: row.Pertanyaan || row.soal || "",
-    A: row.A || "", 
-    B: row.B || "", 
+    Pertanyaan: row.Pertanyaan || "",
+    tipe: tipe || "single",
+
+    // opsi
+    A: row.A || "",
+    B: row.B || "",
     C: row.C || "",
-    D: row.D || "", 
-    E: row.E || "", 
-    JawabanBenar: kunciRaw.split(",").map(k => k.trim().toLowerCase()),
-    tipe
+    D: row.D || "",
+    E: row.E || "",
+
+    JawabanBenar: jawaban
   };
 });
     
