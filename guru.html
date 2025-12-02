@@ -627,61 +627,21 @@ document.getElementById("btnLogout").addEventListener("click", logout);
         const workbook = XLSX.read(data, { type: "array" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet);
-
-const soal = [];
-const matchingTemp = [];
-
-rows.forEach(row => {
-
-  const tipeRow = (row.Tipe || "").toLowerCase();
-
-  // ========================
-  // ✅ SOAL MENJODOHKAN
-  // ========================
-  if (tipeRow === "matching") {
-    if (row.SoalKiri && row.PasanganKanan) {
-      matchingTemp.push({
-        kiri: row.SoalKiri.trim(),
-        kanan: row.PasanganKanan.trim()
-      });
-    }
-    return; // ⛔ JANGAN MASUK PG
-  }
-
-  // ========================
-  // ✅ PILIHAN GANDA
-  // ========================
-  if (!row.Pertanyaan && !row.soal) return;
-
+        const soal = rows.map(row => {
   const kunciRaw = (row.JawabanBenar || row.kunci || "").toString().trim();
-  const kunciArr = kunciRaw
-    .split(",")
-    .map(k => k.trim().toLowerCase())
-    .filter(Boolean);
+  const tipe = kunciRaw.includes(",") ? "multiple" : "single"; // deteksi otomatis multiple
 
-  soal.push({
+  return {
     Pertanyaan: row.Pertanyaan || row.soal || "",
-    A: row.A || "",
-    B: row.B || "",
+    A: row.A || "", 
+    B: row.B || "", 
     C: row.C || "",
-    D: row.D || "",
-    E: row.E || "",
-    JawabanBenar: kunciArr,
-    tipe: kunciArr.length > 1 ? "multiple" : "single"
-  });
+    D: row.D || "", 
+    E: row.E || "", 
+    JawabanBenar: kunciRaw.split(",").map(k => k.trim().toLowerCase()),
+    tipe
+  };
 });
-
-// ========================
-// ✅ GABUNG JADI 1 SOAL MATCHING
-// ========================
-if (matchingTemp.length > 0) {
-  soal.push({
-    tipe: "matching",
-    Pertanyaan: "Pasangkan dengan benar",
-    pasangan: matchingTemp
-  });
-}
-        
     
         try {
           await setDoc(doc(db, "soal", `${kelas}_${mapel}`), { soal, aktif:false });
