@@ -635,41 +635,73 @@ function renderQuestion() {
   // TF GROUP (kumpulan pernyataan Benar/Salah)
   // =====================
   if (soal.tipe === "tf_group") {
-    questionDiv.innerHTML = `
-      <div class="label-tipe">BENAR / SALAH (PERNYATAAN)</div>
-      <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
-      <div><b>${soal.Pertanyaan || ""}</b></div>
-      <div style="margin-top:6px">${soal.Narasi || ""}</div>
-    `;
 
-    if (!answers[current] || typeof answers[current] !== "object") answers[current] = {};
+  // ✅ NORMALISASI DATA (INI KUNCI FIX)
+  let pernyataan = [];
 
-    (soal.Pernyataan || []).forEach((p, idx) => {
-      const row = document.createElement("div");
-      row.className = "option";
-      row.innerHTML = `
-        ${idx + 1}. ${p.teks || ""}<br>
-        <label><input type="radio" name="tf_${idx}" value="B" ${answers[current][idx] === "B" ? "checked" : ""}> ✅ Benar</label>
-        &nbsp;&nbsp;
-        <label><input type="radio" name="tf_${idx}" value="S" ${answers[current][idx] === "S" ? "checked" : ""}> ❌ Salah</label>
-      `;
+  if (Array.isArray(soal.Pernyataan)) {
+    pernyataan = soal.Pernyataan;
+  } else if (typeof soal.Pernyataan === "string" && soal.Pernyataan.trim() !== "") {
+    pernyataan = [{ teks: soal.Pernyataan }];
+  }
 
-      row.querySelectorAll("input").forEach(inp => {
-        inp.onchange = () => {
-          answers[current][idx] = inp.value;
-          saveAnswer().catch(()=>{});
-          renderNav();
-          checkAllAnswered();
-        };
-      });
-
-      optsDiv.appendChild(row);
-    });
-
-    updateNavButtons();
-    checkAllAnswered();
+  // ❌ TIDAK ADA PERNYATAAN
+  if (pernyataan.length === 0) {
+    document.getElementById("question").innerHTML =
+      `<b style="color:red">❌ Data pernyataan TF Group kosong</b>`;
+    document.getElementById("opts").innerHTML = "";
     return;
   }
+
+  const questionDiv = document.getElementById("question");
+  const optsDiv = document.getElementById("opts");
+  optsDiv.innerHTML = "";
+
+  questionDiv.innerHTML = `
+    <div class="label-tipe">BENAR / SALAH (PERNYATAAN)</div>
+    <div class="soal-nomor">Soal ${current + 1} dari ${soalData.length}</div>
+    <div><b>${soal.Pertanyaan || ""}</b></div>
+    <div style="margin-top:6px">${soal.Narasi || ""}</div>
+  `;
+
+  if (!answers[current] || typeof answers[current] !== "object")
+    answers[current] = {};
+
+  pernyataan.forEach((p, idx) => {
+    const row = document.createElement("div");
+    row.className = "option";
+
+    row.innerHTML = `
+      <div><b>${idx + 1}. ${p.teks}</b></div>
+      <label>
+        <input type="radio" name="tf_${idx}" value="B"
+          ${answers[current][idx] === "B" ? "checked" : ""}>
+        ✅ Benar
+      </label>
+      &nbsp;&nbsp;
+      <label>
+        <input type="radio" name="tf_${idx}" value="S"
+          ${answers[current][idx] === "S" ? "checked" : ""}>
+        ❌ Salah
+      </label>
+    `;
+
+    row.querySelectorAll("input").forEach(inp => {
+      inp.onchange = () => {
+        answers[current][idx] = inp.value;
+        saveAnswer().catch(() => {});
+        renderNav();
+        checkAllAnswered();
+      };
+    });
+
+    optsDiv.appendChild(row);
+  });
+
+  updateNavButtons();
+  checkAllAnswered();
+  return;
+    }
 
   // =====================
   // SOAL LAIN: single / multiple / truefalse
