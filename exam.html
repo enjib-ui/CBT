@@ -635,6 +635,8 @@ else if (soalData[current].tipe === "multiple") {
 else if (soalData[current].tipe === "truefalse") {
   jenisSoal = "Benar / Salah";
     }
+  } else if (soalData[current].tipe === "truefalse") {
+  jenisSoal = "Benar / Salah";
 
   document.getElementById("question").innerHTML = `
   <div class="label-tipe">${jenisSoal}</div>
@@ -684,7 +686,7 @@ else if (soalData[current].tipe === "truefalse") {
     wrapper.classList.add("option");
     wrapper.style.marginBottom = "8px";
 
-    if (soalData[current].tipe === "multiple") {
+    if (soalData[current].tipe === "truefalse") {
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.id = `opt-${opt}`;
