@@ -857,9 +857,15 @@ function renderNav() {
     btn.innerText = i + 1;
 
     const ans = answers[i];
-    const isAnswered =
-      (Array.isArray(ans) && ans.length > 0) ||
-      (typeof ans === "string" && ans !== "");
+    let isAnswered = false;
+
+if (soal.tipe === "tf_group") {
+  isAnswered = ans && Object.values(ans).every(v => v === "B" || v === "S");
+} else if (Array.isArray(ans)) {
+  isAnswered = ans.length > 0;
+} else {
+  isAnswered = ans !== undefined && ans !== "";
+    }
 
     if (isAnswered) btn.classList.add("done");
 
