@@ -699,6 +699,53 @@ function renderQuestion() {
 
   checkAllAnswered();
     }
+else if (soal.tipe === "tf_group") {
+  document.getElementById("question").innerHTML = `
+    <div class="label-tipe">BENAR / SALAH (PERNYATAAN)</div>
+    <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
+    <div><b>${soal.Pertanyaan}</b></div>
+    <div style="margin-top:6px">${soal.Narasi}</div>
+  `;
+
+  const optsDiv = document.getElementById("opts");
+  optsDiv.innerHTML = "";
+
+  if (!answers[current]) answers[current] = {};
+
+  soal.Pernyataan.forEach((p, idx) => {
+    const row = document.createElement("div");
+    row.className = "option";
+
+    row.innerHTML = `
+      ${idx + 1}. ${p.teks}<br>
+      <label>
+        <input type="radio" name="tf_${idx}" value="B"
+          ${answers[current][idx] === "B" ? "checked" : ""}>
+        ✅ Benar
+      </label>
+      &nbsp;&nbsp;
+      <label>
+        <input type="radio" name="tf_${idx}" value="S"
+          ${answers[current][idx] === "S" ? "checked" : ""}>
+        ❌ Salah
+      </label>
+    `;
+
+    row.querySelectorAll("input").forEach(inp => {
+      inp.onchange = () => {
+        answers[current][idx] = inp.value;
+        saveAnswer();
+        checkAllAnswered();
+      };
+    });
+
+    optsDiv.appendChild(row);
+  });
+
+  checkAllAnswered();
+  return;
+    }
+    
 
 window.nextQuestion = function() {
   if (current < soalData.length - 1) {
@@ -789,6 +836,14 @@ function renderNav() {
     submitBtn.style.display = "none";
   }
   }
+    if (soal.tipe === "tf_group") {
+  const ans = answers[index];
+  if (!ans) return false;
+
+  return soal.Pernyataan.every((_, i) =>
+    ans[i] === "B" || ans[i] === "S"
+  );
+    }
     
     function updateSubmitBtnState() {
   const submitBtn = document.getElementById("submitBtn");
@@ -850,6 +905,14 @@ function hitungSkor() {
       }
     }
   });
+  if (soal.tipe === "tf_group") {
+  let benar = true;
+  soal.Pernyataan.forEach((p, i) => {
+    if (answers[qIndex][i] !== p.jawabanBenar) benar = false;
+  });
+  if (benar) skor++;
+  }
+  
   return skor;
 }
 
