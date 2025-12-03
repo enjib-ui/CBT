@@ -644,6 +644,9 @@ function renderQuestion() {
   } else if (typeof soal.Pernyataan === "string" && soal.Pernyataan.trim() !== "") {
     pernyataan = [{ teks: soal.Pernyataan }];
   }
+    // ✅ SIMPAN HASIL NORMALISASI
+soal.Pernyataan = pernyataan;
+    
 
   // ❌ TIDAK ADA PERNYATAAN
   if (pernyataan.length === 0) {
