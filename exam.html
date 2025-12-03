@@ -701,43 +701,88 @@ else if (soalData[current].tipe === "truefalse") {
 
       const label = document.createElement("label");
       label.setAttribute("for", `opt-${opt}`);
-      label.innerText = ` ${opt}. ${pilihanText}`;
+function renderQuestion() {
+  if (soalData.length === 0) return;
 
-      wrapper.appendChild(checkbox);
-      wrapper.appendChild(label);
-    } else {
+  const soal = soalData[current];
+  const nomor = current + 1;
+  const total = soalData.length;
+
+  let jenisSoal = "";
+  if (soal.tipe === "single") jenisSoal = "Pilihan Ganda";
+  else if (soal.tipe === "multiple") jenisSoal = "Pilihan Ganda Kompleks";
+  else if (soal.tipe === "truefalse") jenisSoal = "Benar / Salah";
+
+  document.getElementById("question").innerHTML = `
+    <div class="label-tipe">${jenisSoal}</div>
+    <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
+    <div>${soal.Pertanyaan}</div>
+  `;
+
+  const optsDiv = document.getElementById("opts");
+  optsDiv.innerHTML = "";
+
+  // ✅ TRUE / FALSE
+  if (soal.tipe === "truefalse") {
+    [
+      { key: "A", label: "✅ Benar" },
+      { key: "B", label: "❌ Salah" }
+    ].forEach(o => {
+      const div = document.createElement("div");
+      div.className = "option";
+
       const radio = document.createElement("input");
       radio.type = "radio";
-      radio.id = `opt-${opt}`;
-      radio.name = `opt-group-${current}`;
-      radio.value = opt;
-
-      if (answers[current] === opt) {
-        radio.checked = true;
-      }
-
-      radio.onchange = () => selectOption(opt);
+      radio.name = "opt-group";
+      radio.value = o.key;
+      radio.checked = answers[current] === o.key;
+      radio.onchange = () => selectOption(o.key);
 
       const label = document.createElement("label");
-      label.setAttribute("for", `opt-${opt}`);
-      label.innerText = ` ${opt}. ${pilihanText}`;
+      label.innerText = o.label;
 
-      wrapper.appendChild(radio);
-      wrapper.appendChild(label);
+      div.appendChild(radio);
+      div.appendChild(label);
+      optsDiv.appendChild(div);
+    });
+
+    checkAllAnswered();
+    return;
+  }
+
+  // ✅ SINGLE & MULTIPLE
+  ["A","B","C","D","E"].forEach(opt => {
+    if (!soal[opt]) return;
+
+    const div = document.createElement("div");
+    div.className = "option";
+
+    const input = document.createElement("input");
+    input.type = soal.tipe === "multiple" ? "checkbox" : "radio";
+    input.name = "opt-group";
+    input.value = opt;
+
+    if (soal.tipe === "multiple") {
+      input.checked = answers[current]?.includes(opt);
+      input.onchange = () => toggleOption(opt);
+    } else {
+      input.checked = answers[current] === opt;
+      input.onchange = () => selectOption(opt);
     }
 
-    optsDiv.appendChild(wrapper);
+    const label = document.createElement("label");
+    label.innerText = `${opt}. ${soal[opt]}`;
+
+    div.appendChild(input);
+    div.appendChild(label);
+    optsDiv.appendChild(div);
   });
 
   document.getElementById("prevBtn").disabled = current === 0;
   document.getElementById("nextBtn").disabled = current === soalData.length - 1;
-}
-    window.prevQuestion = function() {
-  if (current > 0) {
-    current--;
-    renderQuestion();
-  }
-};
+
+  checkAllAnswered();
+    }
 
 window.nextQuestion = function() {
   if (current < soalData.length - 1) {
