@@ -468,17 +468,20 @@ submitNo.addEventListener('click', () => {
         submitted: false
       }, { merge: true });
 
-      // 🔸 Pisahkan soal berdasarkan tipe
-const singleSoal = soalFound.soal.filter(q => q.tipe === "single");
+      const singleSoal = soalFound.soal.filter(q => q.tipe === "single");
 const multipleSoal = soalFound.soal.filter(q => q.tipe === "multiple");
+const trueFalseSoal = soalFound.soal.filter(q => q.tipe === "truefalse");
 
-// 🔸 Acak masing-masing kelompok
 const singleAcak = shuffleArray(singleSoal);
 const multipleAcak = shuffleArray(multipleSoal);
+const trueFalseAcak = shuffleArray(trueFalseSoal);
 
-// 🔸 Gabungkan kembali sesuai urutan yang kamu inginkan
-// Jika ingin single dulu baru multiple
-soalData = [...singleAcak, ...multipleAcak];
+// urutan bebas (contoh: PG → Benar/Salah → Kompleks)
+soalData = [
+  ...singleAcak,
+  ...multipleAcak,
+  ...trueFalseAcak
+];
 
 // Kalau ingin multiple dulu:
 // soalData = [...multipleAcak, ...singleAcak];
@@ -624,12 +627,14 @@ function renderQuestion() {
   // 🆕 Jenis soal berdasarkan field tipe
   let jenisSoal = "";
   if (soalData[current].tipe === "single") {
-    jenisSoal = "Pilihan Ganda";
-  } else if (soalData[current].tipe === "multiple") {
-    jenisSoal = "Pilihan Ganda Kompleks";
-  } else {
-    jenisSoal = "Jenis Soal Tidak Dikenal";
-  }
+  jenisSoal = "Pilihan Ganda";
+}
+else if (soalData[current].tipe === "multiple") {
+  jenisSoal = "Pilihan Ganda Kompleks";
+}
+else if (soalData[current].tipe === "truefalse") {
+  jenisSoal = "Benar / Salah";
+    }
 
   document.getElementById("question").innerHTML = `
   <div class="label-tipe">${jenisSoal}</div>
@@ -639,6 +644,37 @@ function renderQuestion() {
 
   const optsDiv = document.getElementById("opts");
   optsDiv.innerHTML = "";
+  if (soalData[current].tipe === "truefalse") {
+  const opsi = [
+    { key: "A", label: "✅ Benar" },
+    { key: "B", label: "❌ Salah" }
+  ];
+
+  opsi.forEach(o => {
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("option");
+
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = `opt-group-${current}`;
+    radio.value = o.key;
+
+    if (answers[current] === o.key) {
+      radio.checked = true;
+    }
+
+    radio.onchange = () => selectOption(o.key);
+
+    const label = document.createElement("label");
+    label.innerText = o.label;
+
+    wrapper.appendChild(radio);
+    wrapper.appendChild(label);
+    optsDiv.appendChild(wrapper);
+  });
+
+  return; // ⬅️ wajib supaya tidak lanjut ke opsi A–E
+    }
 
   ["A","B","C","D","E"].forEach(opt => {
     const pilihanText = soalData[current][opt];
