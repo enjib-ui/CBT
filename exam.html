@@ -471,16 +471,19 @@ submitNo.addEventListener('click', () => {
       const singleSoal = soalFound.soal.filter(q => q.tipe === "single");
 const multipleSoal = soalFound.soal.filter(q => q.tipe === "multiple");
 const trueFalseSoal = soalFound.soal.filter(q => q.tipe === "truefalse");
+const tfGroupSoal = soalFound.soal.filter(q => q.tipe === "tf_group");
 
 const singleAcak = shuffleArray(singleSoal);
 const multipleAcak = shuffleArray(multipleSoal);
 const trueFalseAcak = shuffleArray(trueFalseSoal);
+const tfGroupAcak = shuffleArray(tfGroupSoal);
 
 // urutan bebas (contoh: PG → Benar/Salah → Kompleks)
 soalData = [
   ...singleAcak,
   ...multipleAcak,
-  ...trueFalseAcak
+  ...trueFalseAcak,
+  ...tfGroupAcak
 ];
 
 // Kalau ingin multiple dulu:
