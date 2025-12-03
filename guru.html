@@ -630,29 +630,69 @@ document.getElementById("btnLogout").addEventListener("click", logout);
         const soal = rows.map(row => {
   const tipe = (row.Tipe || "").toLowerCase();
 
-  let jawaban = (row.JawabanBenar || "").toString().trim().toLowerCase();
+  // =====================
+  // TRUE FALSE GROUP
+  // =====================
+  if (tipe === "tf_group") {
+    const pernyataan = [];
 
-  // normalisasi jawaban benar/salah
-  if (tipe === "truefalse") {
-    jawaban = jawaban === "benar" ? ["a"] : ["b"];
-  } else {
-    jawaban = jawaban.split(",").map(j => j.trim().toLowerCase());
+    for (let i = 1; i <= 10; i++) {
+      const teks = row[`P${i}`];
+      const jwb = (row[`J${i}`] || "").toString().toLowerCase();
+
+      if (teks && (jwb === "benar" || jwb === "salah")) {
+        pernyataan.push({
+          teks,
+          jawaban: jwb === "benar"
+        });
+      }
+    }
+
+    return {
+      tipe: "tf_group",
+      Pertanyaan: row.Pertanyaan || "",
+      Pernyataan: pernyataan
+    };
   }
 
-  return {
-    Pertanyaan: row.Pertanyaan || "",
-    tipe: tipe || "single",
+  // =====================
+  // TRUE / FALSE TUNGGAL
+  // =====================
+  if (tipe === "truefalse") {
+    const jawaban = (row.JawabanBenar || "").toString().toLowerCase() === "benar"
+      ? ["a"]
+      : ["b"];
 
-    // opsi
+    return {
+      tipe: "truefalse",
+      Pertanyaan: row.Pertanyaan || "",
+      A: row.A || "Benar",
+      B: row.B || "Salah",
+      JawabanBenar: jawaban
+    };
+  }
+
+  // =====================
+  // PILIHAN GANDA / KOMPLEKS
+  // =====================
+  const jawaban = (row.JawabanBenar || "")
+    .toString()
+    .toLowerCase()
+    .split(",")
+    .map(j => j.trim());
+
+  return {
+    tipe: tipe || "single",
+    Pertanyaan: row.Pertanyaan || "",
     A: row.A || "",
     B: row.B || "",
     C: row.C || "",
     D: row.D || "",
     E: row.E || "",
-
     JawabanBenar: jawaban
   };
 });
+    
     
         try {
           await setDoc(doc(db, "soal", `${kelas}_${mapel}`), { soal, aktif:false });
