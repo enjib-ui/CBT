@@ -706,8 +706,13 @@ window.nextQuestion = function() {
     renderQuestion();
   }
 };
+    window.prevQuestion = function() {
+  if (current > 0) {
+    current--;
+    renderQuestion();
+  }
+};
     
-
     function selectOption(opt) {
       answers[current] = opt;
       renderQuestion();
@@ -769,18 +774,21 @@ function renderNav() {
 }
 
     function checkAllAnswered() {
-  // Hitung hanya jawaban yang benar-benar terisi
-  const answeredCount = Object.keys(answers).filter(i => {
-    const j = answers[i];
-    if (Array.isArray(j)) return j.length > 0; // multiple answer harus ada isi
-    return j !== undefined && j !== null && j !== ""; // single answer
-  }).length;
+  const submitBtn = document.getElementById("submitBtn");
 
-  if (answeredCount === soalData.length) {
-    document.getElementById("submitBtn").style.display = "block";
+  const allAnswered = soalData.every((_, index) => {
+    const j = answers[index];
+    if (Array.isArray(j)) return j.length > 0;
+    return j !== undefined && j !== null && j !== "";
+  });
+
+  if (allAnswered) {
+    submitBtn.style.display = "block";
     updateSubmitBtnState();
+  } else {
+    submitBtn.style.display = "none";
   }
-    }
+  }
     
     function updateSubmitBtnState() {
   const submitBtn = document.getElementById("submitBtn");
