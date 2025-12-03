@@ -638,6 +638,53 @@ function renderQuestion() {
   const optsDiv = document.getElementById("opts");
   optsDiv.innerHTML = "";
 
+  else if (soal.tipe === "tf_group") {
+  document.getElementById("question").innerHTML = `
+    <div class="label-tipe">BENAR / SALAH (PERNYATAAN)</div>
+    <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
+    <div><b>${soal.Pertanyaan}</b></div>
+    <div style="margin-top:6px">${soal.Narasi}</div>
+  `;
+
+  const optsDiv = document.getElementById("opts");
+  optsDiv.innerHTML = "";
+
+  if (!answers[current]) answers[current] = {};
+
+  soal.Pernyataan.forEach((p, idx) => {
+    const row = document.createElement("div");
+    row.className = "option";
+
+    row.innerHTML = `
+      ${idx + 1}. ${p.teks}<br>
+      <label>
+        <input type="radio" name="tf_${idx}" value="B"
+          ${answers[current][idx] === "B" ? "checked" : ""}>
+        ✅ Benar
+      </label>
+      &nbsp;&nbsp;
+      <label>
+        <input type="radio" name="tf_${idx}" value="S"
+          ${answers[current][idx] === "S" ? "checked" : ""}>
+        ❌ Salah
+      </label>
+    `;
+
+    row.querySelectorAll("input").forEach(inp => {
+      inp.onchange = () => {
+        answers[current][idx] = inp.value;
+        saveAnswer();
+        checkAllAnswered();
+      };
+    });
+
+    optsDiv.appendChild(row);
+  });
+
+  checkAllAnswered();
+  return;
+    }
+
   // ✅ TRUE / FALSE
   if (soal.tipe === "truefalse") {
     [
@@ -699,54 +746,7 @@ function renderQuestion() {
 
   checkAllAnswered();
     }
-else if (soal.tipe === "tf_group") {
-  document.getElementById("question").innerHTML = `
-    <div class="label-tipe">BENAR / SALAH (PERNYATAAN)</div>
-    <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
-    <div><b>${soal.Pertanyaan}</b></div>
-    <div style="margin-top:6px">${soal.Narasi}</div>
-  `;
-
-  const optsDiv = document.getElementById("opts");
-  optsDiv.innerHTML = "";
-
-  if (!answers[current]) answers[current] = {};
-
-  soal.Pernyataan.forEach((p, idx) => {
-    const row = document.createElement("div");
-    row.className = "option";
-
-    row.innerHTML = `
-      ${idx + 1}. ${p.teks}<br>
-      <label>
-        <input type="radio" name="tf_${idx}" value="B"
-          ${answers[current][idx] === "B" ? "checked" : ""}>
-        ✅ Benar
-      </label>
-      &nbsp;&nbsp;
-      <label>
-        <input type="radio" name="tf_${idx}" value="S"
-          ${answers[current][idx] === "S" ? "checked" : ""}>
-        ❌ Salah
-      </label>
-    `;
-
-    row.querySelectorAll("input").forEach(inp => {
-      inp.onchange = () => {
-        answers[current][idx] = inp.value;
-        saveAnswer();
-        checkAllAnswered();
-      };
-    });
-
-    optsDiv.appendChild(row);
-  });
-
-  checkAllAnswered();
-  return;
-    }
     
-
 window.nextQuestion = function() {
   if (current < soalData.length - 1) {
     current++;
@@ -820,30 +820,31 @@ function renderNav() {
   checkAllAnswered();
 }
 
-    function checkAllAnswered() {
+function checkAllAnswered() {
   const submitBtn = document.getElementById("submitBtn");
 
-  const allAnswered = soalData.every((_, index) => {
-    const j = answers[index];
-    if (Array.isArray(j)) return j.length > 0;
-    return j !== undefined && j !== null && j !== "";
+  const allAnswered = soalData.every((soal, index) => {
+    const ans = answers[index];
+
+    // ✅ TF GROUP
+    if (soal.tipe === "tf_group") {
+      if (!ans) return false;
+      return soal.Pernyataan.every((_, i) =>
+        ans[i] === "B" || ans[i] === "S"
+      );
+    }
+
+    // ✅ MULTIPLE
+    if (Array.isArray(ans)) return ans.length > 0;
+
+    // ✅ SINGLE / TRUEFALSE
+    return ans !== undefined && ans !== null && ans !== "";
   });
 
-  if (allAnswered) {
-    submitBtn.style.display = "block";
-    updateSubmitBtnState();
-  } else {
-    submitBtn.style.display = "none";
-  }
-  }
-    if (soal.tipe === "tf_group") {
-  const ans = answers[index];
-  if (!ans) return false;
-
-  return soal.Pernyataan.every((_, i) =>
-    ans[i] === "B" || ans[i] === "S"
-  );
-    }
+  submitBtn.style.display = allAnswered ? "block" : "none";
+  if (allAnswered) updateSubmitBtnState();
+      }
+    
     
     function updateSubmitBtnState() {
   const submitBtn = document.getElementById("submitBtn");
@@ -887,34 +888,31 @@ function renderNav() {
 // ============================
 function hitungSkor() {
   let skor = 0;
+
   soalData.forEach((soal, i) => {
-    const kunci = soal.jawabanBenar; // string atau array
     const jawaban = answers[i];
 
+    if (soal.tipe === "tf_group") {
+      let benar = true;
+      soal.Pernyataan.forEach((p, idx) => {
+        if (jawaban?.[idx] !== p.jawabanBenar) benar = false;
+      });
+      if (benar) skor++;
+      return;
+    }
+
     if (soal.tipe === "multiple") {
-      // Jika soal multiple, cocokkan array jawaban
-      if (Array.isArray(jawaban) && Array.isArray(kunci)) {
-        if (arraySama(jawaban.sort(), kunci.sort())) {
-          skor++;
-        }
-      }
-    } else {
-      // Jika soal single
-      if (jawaban === kunci) {
+      if (Array.isArray(jawaban) &&
+          arraySama(jawaban.sort(), soal.jawabanBenar.sort())) {
         skor++;
       }
+    } else {
+      if (jawaban === soal.jawabanBenar) skor++;
     }
   });
-  if (soal.tipe === "tf_group") {
-  let benar = true;
-  soal.Pernyataan.forEach((p, i) => {
-    if (answers[qIndex][i] !== p.jawabanBenar) benar = false;
-  });
-  if (benar) skor++;
-  }
-  
+
   return skor;
-}
+                   }
 
 function arraySama(a, b) {
   return a.length === b.length && a.every((v, i) => v === b[i]);
