@@ -624,66 +624,71 @@ function renderQuestion() {
   const nomor = current + 1;
   const total = soalData.length;
 
+  const questionDiv = document.getElementById("question");
+  const optsDiv = document.getElementById("opts");
+  optsDiv.innerHTML = "";
+
+  // =====================
+  // ✅ TF GROUP (PALING ATAS)
+  // =====================
+  if (soal.tipe === "tf_group") {
+    questionDiv.innerHTML = `
+      <div class="label-tipe">BENAR / SALAH (PERNYATAAN)</div>
+      <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
+      <div><b>${soal.Pertanyaan}</b></div>
+      <div style="margin-top:6px">${soal.Narasi || ""}</div>
+    `;
+
+    if (!answers[current]) answers[current] = {};
+
+    soal.Pernyataan.forEach((p, idx) => {
+      const row = document.createElement("div");
+      row.className = "option";
+      row.innerHTML = `
+        ${idx + 1}. ${p.teks}<br>
+        <label>
+          <input type="radio" name="tf_${idx}" value="B"
+            ${answers[current][idx] === "B" ? "checked" : ""}>
+          ✅ Benar
+        </label>
+        &nbsp;&nbsp;
+        <label>
+          <input type="radio" name="tf_${idx}" value="S"
+            ${answers[current][idx] === "S" ? "checked" : ""}>
+          ❌ Salah
+        </label>
+      `;
+
+      row.querySelectorAll("input").forEach(inp => {
+        inp.onchange = () => {
+          answers[current][idx] = inp.value;
+          saveAnswer();
+          renderNav();
+          checkAllAnswered();
+        };
+      });
+
+      optsDiv.appendChild(row);
+    });
+
+    updateNavButtons();
+    checkAllAnswered();
+    return;
+  }
+
+  // =====================
+  // ✅ JENIS SOAL LAIN
+  // =====================
   let jenisSoal = "";
   if (soal.tipe === "single") jenisSoal = "Pilihan Ganda";
   else if (soal.tipe === "multiple") jenisSoal = "Pilihan Ganda Kompleks";
   else if (soal.tipe === "truefalse") jenisSoal = "Benar / Salah";
 
-  document.getElementById("question").innerHTML = `
+  questionDiv.innerHTML = `
     <div class="label-tipe">${jenisSoal}</div>
     <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
     <div>${soal.Pertanyaan}</div>
   `;
-
-  const optsDiv = document.getElementById("opts");
-  optsDiv.innerHTML = "";
-
-  else if (soal.tipe === "tf_group") {
-  document.getElementById("question").innerHTML = `
-    <div class="label-tipe">BENAR / SALAH (PERNYATAAN)</div>
-    <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
-    <div><b>${soal.Pertanyaan}</b></div>
-    <div style="margin-top:6px">${soal.Narasi}</div>
-  `;
-
-  const optsDiv = document.getElementById("opts");
-  optsDiv.innerHTML = "";
-
-  if (!answers[current]) answers[current] = {};
-
-  soal.Pernyataan.forEach((p, idx) => {
-    const row = document.createElement("div");
-    row.className = "option";
-
-    row.innerHTML = `
-      ${idx + 1}. ${p.teks}<br>
-      <label>
-        <input type="radio" name="tf_${idx}" value="B"
-          ${answers[current][idx] === "B" ? "checked" : ""}>
-        ✅ Benar
-      </label>
-      &nbsp;&nbsp;
-      <label>
-        <input type="radio" name="tf_${idx}" value="S"
-          ${answers[current][idx] === "S" ? "checked" : ""}>
-        ❌ Salah
-      </label>
-    `;
-
-    row.querySelectorAll("input").forEach(inp => {
-      inp.onchange = () => {
-        answers[current][idx] = inp.value;
-        saveAnswer();
-        checkAllAnswered();
-      };
-    });
-
-    optsDiv.appendChild(row);
-  });
-
-  checkAllAnswered();
-  return;
-    }
 
   // ✅ TRUE / FALSE
   if (soal.tipe === "truefalse") {
@@ -708,38 +713,40 @@ function renderQuestion() {
       div.appendChild(label);
       optsDiv.appendChild(div);
     });
+  } 
+  // ✅ SINGLE & MULTIPLE
+  else {
+    ["A","B","C","D","E"].forEach(opt => {
+      if (!soal[opt]) return;
 
-    checkAllAnswered();
-    return;
+      const div = document.createElement("div");
+      div.className = "option";
+
+      const input = document.createElement("input");
+      input.type = soal.tipe === "multiple" ? "checkbox" : "radio";
+      input.name = "opt-group";
+      input.value = opt;
+
+      if (soal.tipe === "multiple") {
+        input.checked = answers[current]?.includes(opt);
+        input.onchange = () => toggleOption(opt);
+      } else {
+        input.checked = answers[current] === opt;
+        input.onchange = () => selectOption(opt);
+      }
+
+      const label = document.createElement("label");
+      label.innerText = `${opt}. ${soal[opt]}`;
+
+      div.appendChild(input);
+      div.appendChild(label);
+      optsDiv.appendChild(div);
+    });
   }
 
-  // ✅ SINGLE & MULTIPLE
-  ["A","B","C","D","E"].forEach(opt => {
-    if (!soal[opt]) return;
-
-    const div = document.createElement("div");
-    div.className = "option";
-
-    const input = document.createElement("input");
-    input.type = soal.tipe === "multiple" ? "checkbox" : "radio";
-    input.name = "opt-group";
-    input.value = opt;
-
-    if (soal.tipe === "multiple") {
-      input.checked = answers[current]?.includes(opt);
-      input.onchange = () => toggleOption(opt);
-    } else {
-      input.checked = answers[current] === opt;
-      input.onchange = () => selectOption(opt);
-    }
-
-    const label = document.createElement("label");
-    label.innerText = `${opt}. ${soal[opt]}`;
-
-    div.appendChild(input);
-    div.appendChild(label);
-    optsDiv.appendChild(div);
-  });
+  updateNavButtons();
+  checkAllAnswered();
+          }
 
   document.getElementById("prevBtn").disabled = current === 0;
   document.getElementById("nextBtn").disabled = current === soalData.length - 1;
