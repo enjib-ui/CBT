@@ -114,13 +114,16 @@
       <h3>Monitoring Aktivitas Siswa</h3>
       <table id="monitorTable">
         <thead>
-          <tr><th>Nama</th>
-            <th>
-  Kelas <br>
+          <tr>
+  <th>Nama</th>
+  <th>Kelas <br>
   <select id="monitorKelasFilter" onchange="loadMonitor()">
     <option value="">Semua</option>
   </select>
-            </th><th>Soal</th><th>Status</th></tr>
+            </th><th>Soal</th>
+  <th>Status</th>
+  <th>Aksi</th>
+</tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -593,6 +596,15 @@ document.getElementById("btnLogout").addEventListener("click", logout);
         <td>${ds.kelas}</td>
         <td>${soalLabel}</td>
         <td>${status}</td>
+<td>
+  ${
+    soalObj?.data?.allowedUsers?.includes(s.id)
+      ? `<button class="danger" onclick="cabutAksesSiswa('${soalObj.id}', '${s.id}', '${ds.nama}')">
+           🚫 Cabut
+         </button>`
+      : "-"
+  }
+</td>
       </tr>`;
   }
 
@@ -614,6 +626,35 @@ document.getElementById("btnLogout").addEventListener("click", logout);
     function stopMonitorAutoRefresh() {
       if (monitorInterval) { clearInterval(monitorInterval); monitorInterval = null; }
     }
+    import { updateDoc, arrayRemove } from 
+  "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+
+window.cabutAksesSiswa = async function(soalId, uid, nama) {
+  const yakin = confirm(
+    `Cabut akses ujian untuk:\n\n${nama}\n\n` +
+    `Siswa tidak bisa melanjutkan ujian.`
+  );
+  if (!yakin) return;
+
+  try {
+    // 1️⃣ Hapus dari allowedUsers
+    await updateDoc(doc(db, "soal", soalId), {
+      allowedUsers: arrayRemove(uid)
+    });
+
+    // 2️⃣ (Opsional tapi disarankan) reset jawaban
+    await setDoc(doc(db, "jawaban", uid), {
+      submitted: true,
+      blocked: true,
+      blockedAt: new Date()
+    }, { merge: true });
+
+    alert(`✅ Akses ${nama} berhasil dicabut`);
+    loadMonitor();
+  } catch (err) {
+    alert("❌ Gagal mencabut akses: " + err.message);
+  }
+};
 
     // ====== Upload Soal ======
     window.uploadSoal = function() {
