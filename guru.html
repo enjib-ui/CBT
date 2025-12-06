@@ -733,7 +733,22 @@ window.cabutAksesSiswa = async function(soalId, uid, nama) {
     JawabanBenar: jawaban
   };
 });
-    
+    // =====================
+// MENJODOHKAN
+// =====================
+if (tipe === "jodohkan") {
+  const kiri = (row.Kiri || "").split("|").map(x => x.trim()).filter(Boolean);
+  const kanan = (row.Kanan || "").split("|").map(x => x.trim()).filter(Boolean);
+  const jawaban = (row.JawabanBenar || "").split("|").map(x => x.trim());
+
+  return {
+    tipe: "jodohkan",
+    Pertanyaan: row.Pertanyaan || "",
+    Kiri: kiri,
+    Kanan: kanan,
+    JawabanBenar: jawaban
+  };
+}
     
         try {
           await setDoc(doc(db, "soal", `${kelas}_${mapel}`), { soal, aktif:false });
