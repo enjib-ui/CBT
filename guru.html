@@ -760,6 +760,24 @@ if (tipe === "jodohkan") {
       JawabanBenar: jawaban
     };
   }
+          // =====================
+// ISIAN PENDEK
+// =====================
+if (tipe === "short") {
+  let jb = (row.JawabanBenar || "").toString().trim();
+
+  if (!jb) {
+    return null; // skip soal invalid
+  }
+
+  return {
+    tipe: "short",
+    Pertanyaan: row.Pertanyaan || "",
+    JawabanBenar: jb.split("|").map(j =>
+      j.trim().toLowerCase()
+    )
+  };
+}
 
   // =====================
   // PILIHAN GANDA / KOMPLEKS
