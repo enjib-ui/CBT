@@ -655,6 +655,37 @@ window.cabutAksesSiswa = async function(soalId, uid, nama) {
     alert("❌ Gagal mencabut akses: " + err.message);
   }
 };
+    function validasiJodohkan(soal, index) {
+  if (!Array.isArray(soal.Kiri) || soal.Kiri.length < 2) {
+    throw `Soal ke-${index + 1}: Kiri minimal 2 item`;
+  }
+
+  if (!Array.isArray(soal.Kanan) || soal.Kanan.length < 2) {
+    throw `Soal ke-${index + 1}: Kanan minimal 2 item`;
+  }
+
+  if (!Array.isArray(soal.JawabanBenar)) {
+    throw `Soal ke-${index + 1}: JawabanBenar harus array`;
+  }
+
+  if (soal.JawabanBenar.length !== soal.Kiri.length) {
+    throw `Soal ke-${index + 1}: Jumlah JawabanBenar tidak sama dengan Kiri`;
+  }
+
+  // jawaban harus ada di kanan
+  const invalid = soal.JawabanBenar.find(j => !soal.Kanan.includes(j));
+  if (invalid) {
+    throw `Soal ke-${index + 1}: Jawaban "${invalid}" tidak ada di kolom Kanan`;
+  }
+
+  // duplikat
+  const dup = new Set(soal.JawabanBenar);
+  if (dup.size !== soal.JawabanBenar.length) {
+    throw `Soal ke-${index + 1}: JawabanBenar tidak boleh duplikat`;
+  }
+
+  return true;
+}
 
     // ====== Upload Soal ======
     window.uploadSoal = function() {
@@ -732,7 +763,7 @@ window.cabutAksesSiswa = async function(soalId, uid, nama) {
     E: row.E || "",
     JawabanBenar: jawaban
   };
-});
+}
     // =====================
 // MENJODOHKAN
 // =====================
@@ -748,7 +779,7 @@ if (tipe === "jodohkan") {
     Kanan: kanan,
     JawabanBenar: jawaban
   };
-}
+});
     
         try {
           await setDoc(doc(db, "soal", `${kelas}_${mapel}`), { soal, aktif:false });
