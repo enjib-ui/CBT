@@ -472,18 +472,22 @@ submitNo.addEventListener('click', () => {
 const multipleSoal = soalFound.soal.filter(q => q.tipe === "multiple");
 const trueFalseSoal = soalFound.soal.filter(q => q.tipe === "truefalse");
 const tfGroupSoal = soalFound.soal.filter(q => q.tipe === "tf_group");
+const matchingSoal = soalFound.soal.filter(q => q.tipe === "jodohkan");
 
 const singleAcak = shuffleArray(singleSoal);
 const multipleAcak = shuffleArray(multipleSoal);
 const trueFalseAcak = shuffleArray(trueFalseSoal);
 const tfGroupAcak = shuffleArray(tfGroupSoal);
+const matchingAcak = shuffleArray(matchingSoal);
+
 
 // urutan bebas (contoh: PG → Benar/Salah → Kompleks)
 soalData = [
   ...singleAcak,
   ...multipleAcak,
   ...trueFalseAcak,
-  ...tfGroupAcak
+  ...tfGroupAcak,
+  ...matchingAcak
 ];
 
 // Kalau ingin multiple dulu:
@@ -709,6 +713,21 @@ soal.Pernyataan = pernyataan;
 // MENJODOHKAN
 // =====================
 if (soal.tipe === "jodohkan") {
+
+  // ⛔ VALIDASI DATA
+  if (!validasiJodohkan(soal)) {
+    questionDiv.innerHTML = `
+      <div class="label-tipe">MENJODOHKAN</div>
+      <div style="color:red;font-weight:bold">
+        ❌ Template soal MENJODOHKAN tidak valid.<br>
+        Silakan hubungi guru/pengawas.
+      </div>
+    `;
+    optsDiv.innerHTML = "";
+    updateNavButtons();
+    return;
+  }
+
   questionDiv.innerHTML = `
     <div class="label-tipe">MENJODOHKAN</div>
     <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
@@ -838,6 +857,25 @@ if (soal.tipe === "jodohkan") {
   updateNavButtons();
   checkAllAnswered();
     }
+  function validasiJodohkan(soal) {
+  if (!Array.isArray(soal.Kiri) || soal.Kiri.length < 2) return false;
+  if (!Array.isArray(soal.Kanan) || soal.Kanan.length < 2) return false;
+  if (!Array.isArray(soal.JawabanBenar)) return false;
+  if (soal.JawabanBenar.length !== soal.Kiri.length) return false;
+
+  // ❌ Kiri tidak boleh kosong
+  if (!soal.Kiri.every(k => typeof k === "string" && k.trim() !== "")) return false;
+  if (!soal.Kanan.every(k => typeof k === "string" && k.trim() !== "")) return false;
+
+  // ❌ Jawaban harus ada di Kanan
+  if (!soal.JawabanBenar.every(jb => soal.Kanan.includes(jb))) return false;
+
+  // ❌ Jawaban tidak boleh duplikat
+  const unique = new Set(soal.JawabanBenar);
+  if (unique.size !== soal.JawabanBenar.length) return false;
+
+  return true;
+}
 
   function updateNavButtons() {
   const prev = document.getElementById("prevBtn");
