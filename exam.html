@@ -705,6 +705,50 @@ soal.Pernyataan = pernyataan;
   checkAllAnswered();
   return;
     }
+  // =====================
+// MENJODOHKAN
+// =====================
+if (soal.tipe === "jodohkan") {
+  questionDiv.innerHTML = `
+    <div class="label-tipe">MENJODOHKAN</div>
+    <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
+    <div><b>${soal.Pertanyaan}</b></div>
+  `;
+
+  if (!answers[current] || typeof answers[current] !== "object")
+    answers[current] = {};
+
+  soal.Kiri.forEach((teks, idx) => {
+    const row = document.createElement("div");
+    row.className = "option";
+
+    const select = document.createElement("select");
+    select.innerHTML = `<option value="">-- Pilih --</option>`;
+
+    soal.Kanan.forEach(opsi => {
+      const opt = document.createElement("option");
+      opt.value = opsi;
+      opt.innerText = opsi;
+      if (answers[current][idx] === opsi) opt.selected = true;
+      select.appendChild(opt);
+    });
+
+    select.onchange = () => {
+      answers[current][idx] = select.value;
+      saveAnswer().catch(()=>{});
+      renderNav();
+      checkAllAnswered();
+    };
+
+    row.innerHTML = `<b>${idx + 1}. ${teks}</b><br>`;
+    row.appendChild(select);
+    optsDiv.appendChild(row);
+  });
+
+  updateNavButtons();
+  checkAllAnswered();
+  return;
+}
 
   // =====================
   // SOAL LAIN: single / multiple / truefalse
@@ -866,6 +910,9 @@ if (soal.tipe === "tf_group") {
 } else {
   isAnswered = ans !== undefined && ans !== "";
     }
+ if (soal.tipe === "jodohkan") {
+  isAnswered = ans && soal.Kiri.every((_, i) => ans[i]);
+}
 
     if (isAnswered) btn.classList.add("done");
 
@@ -886,6 +933,12 @@ function checkAllAnswered() {
 
   const allAnswered = soalData.every((soal, index) => {
     const ans = answers[index];
+    // ✅ MENJODOHKAN
+if (soal.tipe === "jodohkan") {
+  if (!ans) return false;
+  return soal.Kiri.every((_, i) => ans[i] && ans[i] !== "");
+}
+
 
     // ✅ TF GROUP
     if (soal.tipe === "tf_group") {
@@ -952,6 +1005,15 @@ function hitungSkor() {
 
   soalData.forEach((soal, i) => {
     const jawaban = answers[i];
+    
+    if (soal.tipe === "jodohkan") {
+  let benar = true;
+  soal.JawabanBenar.forEach((jb, i) => {
+    if (jawaban?.[i] !== jb) benar = false;
+  });
+  if (benar) skor++;
+  return;
+}
 
     if (soal.tipe === "tf_group") {
       let benar = true;
