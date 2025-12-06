@@ -710,6 +710,39 @@ soal.Pernyataan = pernyataan;
   return;
     }
   // =====================
+// ISIAN PENDEK
+// =====================
+if (soal.tipe === "short") {
+  questionDiv.innerHTML = `
+    <div class="label-tipe">ISIAN PENDEK</div>
+    <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
+    <div><b>${soal.Pertanyaan}</b></div>
+  `;
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = "Ketik jawaban...";
+  input.style.width = "100%";
+  input.value = answers[current] || "";
+
+  input.oninput = () => {
+    answers[current] = input.value;
+    saveAnswer().catch(()=>{});
+    renderNav();
+    checkAllAnswered();
+  };
+
+  const div = document.createElement("div");
+  div.className = "option";
+  div.appendChild(input);
+  optsDiv.appendChild(div);
+
+  updateNavButtons();
+  checkAllAnswered();
+  return;
+}
+
+  // =====================
 // MENJODOHKAN
 // =====================
 if (soal.tipe === "jodohkan") {
@@ -1043,6 +1076,19 @@ function hitungSkor() {
 
   soalData.forEach((soal, i) => {
     const jawaban = answers[i];
+    // =====================
+// PENILAIAN ISIAN PENDEK
+// =====================
+if (soal.tipe === "short") {
+  const jawabanSiswa = (answers[i] || "")
+    .toString()
+    .trim()
+    .toLowerCase();
+
+  return soal.JawabanBenar.includes(jawabanSiswa)
+    ? 1
+    : 0;
+}
     
     if (soal.tipe === "jodohkan") {
   let benar = true;
