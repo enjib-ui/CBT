@@ -473,12 +473,14 @@ const multipleSoal = soalFound.soal.filter(q => q.tipe === "multiple");
 const trueFalseSoal = soalFound.soal.filter(q => q.tipe === "truefalse");
 const tfGroupSoal = soalFound.soal.filter(q => q.tipe === "tf_group");
 const matchingSoal = soalFound.soal.filter(q => q.tipe === "jodohkan");
+const shortSoal = soalFound.soal.filter(q => q.tipe === "short");
 
 const singleAcak = shuffleArray(singleSoal);
 const multipleAcak = shuffleArray(multipleSoal);
 const trueFalseAcak = shuffleArray(trueFalseSoal);
 const tfGroupAcak = shuffleArray(tfGroupSoal);
 const matchingAcak = shuffleArray(matchingSoal);
+const shortAcak = shuffleArray(shortSoal);
 
 
 // urutan bebas (contoh: PG → Benar/Salah → Kompleks)
@@ -487,7 +489,8 @@ soalData = [
   ...multipleAcak,
   ...trueFalseAcak,
   ...tfGroupAcak,
-  ...matchingAcak
+  ...matchingAcak,
+  ...shortAcak
 ];
 
 // Kalau ingin multiple dulu:
@@ -1085,9 +1088,10 @@ if (soal.tipe === "short") {
     .trim()
     .toLowerCase();
 
-  return soal.JawabanBenar.includes(jawabanSiswa)
-    ? 1
-    : 0;
+  if (soal.JawabanBenar.includes(jawabanSiswa)) {
+    skor++;
+  }
+  return;
 }
     
     if (soal.tipe === "jodohkan") {
