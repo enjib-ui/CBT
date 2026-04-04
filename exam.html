@@ -638,172 +638,187 @@ function renderQuestion() {
   const optsDiv = document.getElementById("opts");
   optsDiv.innerHTML = "";
 
+  // ✅ DETEKSI GAMBAR SOAL UTAMA
+  let imgHtml = "";
+  if (soal.img) {
+    imgHtml = `<img src="${soal.img}" alt="Gambar Soal" style="max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: block;">`;
+  }
+
   // =====================
   // TF GROUP (kumpulan pernyataan Benar/Salah)
   // =====================
   if (soal.tipe === "tf_group") {
 
-  // ✅ NORMALISASI DATA (INI KUNCI FIX)
-  let pernyataan = [];
+    // ✅ NORMALISASI DATA (INI KUNCI FIX)
+    let pernyataan = [];
 
-  if (Array.isArray(soal.Pernyataan)) {
-    pernyataan = soal.Pernyataan;
-  } else if (typeof soal.Pernyataan === "string" && soal.Pernyataan.trim() !== "") {
-    pernyataan = [{ teks: soal.Pernyataan }];
-  }
-    // ✅ SIMPAN HASIL NORMALISASI
-soal.Pernyataan = pernyataan;
-    
-
-  // ❌ TIDAK ADA PERNYATAAN
-  if (pernyataan.length === 0) {
-    document.getElementById("question").innerHTML =
-      `<b style="color:red">❌ Data pernyataan TF Group kosong</b>`;
-    document.getElementById("opts").innerHTML = "";
-    return;
-  }
-
-  const questionDiv = document.getElementById("question");
-  const optsDiv = document.getElementById("opts");
-  optsDiv.innerHTML = "";
-
-  questionDiv.innerHTML = `
-    <div class="label-tipe">BENAR / SALAH (LEBIH DARI 1)</div>
-    <div class="soal-nomor">Soal ${current + 1} dari ${soalData.length}</div>
-    <div><b>${soal.Pertanyaan || ""}</b></div>
-    <div style="margin-top:6px">${soal.Narasi || ""}</div>
-  `;
-
-  if (!answers[current] || typeof answers[current] !== "object")
-    answers[current] = {};
-
-  pernyataan.forEach((p, idx) => {
-    const row = document.createElement("div");
-    row.className = "option";
-
-    row.innerHTML = `
-      <div><b>${idx + 1}. ${p.teks}</b></div>
-      <label>
-        <input type="radio" name="tf_${idx}" value="B"
-          ${answers[current][idx] === "B" ? "checked" : ""}>
-        ✅ Benar
-      </label>
-      &nbsp;&nbsp;
-      <label>
-        <input type="radio" name="tf_${idx}" value="S"
-          ${answers[current][idx] === "S" ? "checked" : ""}>
-        ❌ Salah
-      </label>
-    `;
-
-    row.querySelectorAll("input").forEach(inp => {
-      inp.onchange = () => {
-        answers[current][idx] = inp.value;
-        saveAnswer().catch(() => {});
-        renderNav();
-        checkAllAnswered();
-      };
-    });
-
-    optsDiv.appendChild(row);
-  });
-
-  updateNavButtons();
-  checkAllAnswered();
-  return;
+    if (Array.isArray(soal.Pernyataan)) {
+      pernyataan = soal.Pernyataan;
+    } else if (typeof soal.Pernyataan === "string" && soal.Pernyataan.trim() !== "") {
+      pernyataan = [{ teks: soal.Pernyataan }];
     }
-  // =====================
-// ISIAN PENDEK
-// =====================
-if (soal.tipe === "short") {
-  questionDiv.innerHTML = `
-    <div class="label-tipe">ISIAN PENDEK</div>
-    <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
-    <div><b>${soal.Pertanyaan}</b></div>
-  `;
+    // ✅ SIMPAN HASIL NORMALISASI
+    soal.Pernyataan = pernyataan;
 
-  const input = document.createElement("input");
-  input.type = "text";
-  input.placeholder = "Ketik jawaban...";
-  input.style.width = "100%";
-  input.value = answers[current] || "";
+    // ❌ TIDAK ADA PERNYATAAN
+    if (pernyataan.length === 0) {
+      document.getElementById("question").innerHTML =
+        `<b style="color:red">❌ Data pernyataan TF Group kosong</b>`;
+      document.getElementById("opts").innerHTML = "";
+      return;
+    }
 
-  input.oninput = () => {
-    answers[current] = input.value;
-    saveAnswer().catch(()=>{});
-    renderNav();
-    checkAllAnswered();
-  };
+    // (Penghapusan deklarasi ulang const questionDiv/optsDiv karena sudah ada di atas)
 
-  const div = document.createElement("div");
-  div.className = "option";
-  div.appendChild(input);
-  optsDiv.appendChild(div);
-
-  updateNavButtons();
-  checkAllAnswered();
-  return;
-}
-
-  // =====================
-// MENJODOHKAN
-// =====================
-if (soal.tipe === "jodohkan") {
-
-  // ⛔ VALIDASI DATA
-  if (!validasiJodohkan(soal)) {
     questionDiv.innerHTML = `
-      <div class="label-tipe">MENJODOHKAN</div>
-      <div style="color:red;font-weight:bold">
-        ❌ Template soal MENJODOHKAN tidak valid.<br>
-        Silakan hubungi guru/pengawas.
-      </div>
+      <div class="label-tipe">BENAR / SALAH (LEBIH DARI 1)</div>
+      <div class="soal-nomor">Soal ${current + 1} dari ${soalData.length}</div>
+      ${imgHtml} <div><b>${soal.Pertanyaan || ""}</b></div>
+      <div style="margin-top:6px">${soal.Narasi || ""}</div>
     `;
-    optsDiv.innerHTML = "";
+
+    if (!answers[current] || typeof answers[current] !== "object")
+      answers[current] = {};
+
+    pernyataan.forEach((p, idx) => {
+      const row = document.createElement("div");
+      row.className = "option";
+
+      // 📸 GAMBAR PERNYATAAN TF GROUP (jika ada)
+      const teksPernyataan = typeof p === "object" ? p.teks : p;
+      const imgPernyataan = (typeof p === "object" && p.img) ? `<br><img src="${p.img}" style="max-width:200px; display:block; margin-top:5px; border-radius:4px;">` : "";
+
+      row.innerHTML = `
+        <div><b>${idx + 1}. ${teksPernyataan}</b> ${imgPernyataan}</div>
+        <label>
+          <input type="radio" name="tf_${idx}" value="B"
+            ${answers[current][idx] === "B" ? "checked" : ""}>
+          ✅ Benar
+        </label>
+        &nbsp;&nbsp;
+        <label>
+          <input type="radio" name="tf_${idx}" value="S"
+            ${answers[current][idx] === "S" ? "checked" : ""}>
+          ❌ Salah
+        </label>
+      `;
+
+      row.querySelectorAll("input").forEach(inp => {
+        inp.onchange = () => {
+          answers[current][idx] = inp.value;
+          saveAnswer().catch(() => {});
+          renderNav();
+          checkAllAnswered();
+        };
+      });
+
+      optsDiv.appendChild(row);
+    });
+
     updateNavButtons();
+    checkAllAnswered();
     return;
   }
 
-  questionDiv.innerHTML = `
-    <div class="label-tipe">MENJODOHKAN</div>
-    <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
-    <div><b>${soal.Pertanyaan}</b></div>
-  `;
+  // =====================
+  // ISIAN PENDEK
+  // =====================
+  if (soal.tipe === "short") {
+    questionDiv.innerHTML = `
+      <div class="label-tipe">ISIAN PENDEK</div>
+      <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
+      ${imgHtml} <div><b>${soal.Pertanyaan}</b></div>
+    `;
 
-  if (!answers[current] || typeof answers[current] !== "object")
-    answers[current] = {};
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "Ketik jawaban...";
+    input.style.width = "100%";
+    input.value = answers[current] || "";
 
-  soal.Kiri.forEach((teks, idx) => {
-    const row = document.createElement("div");
-    row.className = "option";
-
-    const select = document.createElement("select");
-    select.innerHTML = `<option value="">-- Pilih --</option>`;
-
-    soal.Kanan.forEach(opsi => {
-      const opt = document.createElement("option");
-      opt.value = opsi;
-      opt.innerText = opsi;
-      if (answers[current][idx] === opsi) opt.selected = true;
-      select.appendChild(opt);
-    });
-
-    select.onchange = () => {
-      answers[current][idx] = select.value;
+    input.oninput = () => {
+      answers[current] = input.value;
       saveAnswer().catch(()=>{});
       renderNav();
       checkAllAnswered();
     };
 
-    row.innerHTML = `<b>${idx + 1}. ${teks}</b><br>`;
-    row.appendChild(select);
-    optsDiv.appendChild(row);
-  });
+    const div = document.createElement("div");
+    div.className = "option";
+    div.appendChild(input);
+    optsDiv.appendChild(div);
 
-  updateNavButtons();
-  checkAllAnswered();
-  return;
-}
+    updateNavButtons();
+    checkAllAnswered();
+    return;
+  }
+
+  // =====================
+  // MENJODOHKAN
+  // =====================
+  if (soal.tipe === "jodohkan") {
+
+    // ⛔ VALIDASI DATA
+    if (!validasiJodohkan(soal)) {
+      questionDiv.innerHTML = `
+        <div class="label-tipe">MENJODOHKAN</div>
+        <div style="color:red;font-weight:bold">
+          ❌ Template soal MENJODOHKAN tidak valid.<br>
+          Silakan hubungi guru/pengawas.
+        </div>
+      `;
+      optsDiv.innerHTML = "";
+      updateNavButtons();
+      return;
+    }
+
+    questionDiv.innerHTML = `
+      <div class="label-tipe">MENJODOHKAN</div>
+      <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
+      ${imgHtml} <div><b>${soal.Pertanyaan}</b></div>
+    `;
+
+    if (!answers[current] || typeof answers[current] !== "object")
+      answers[current] = {};
+
+    soal.Kiri.forEach((kiriItem, idx) => {
+      const row = document.createElement("div");
+      row.className = "option";
+
+      const select = document.createElement("select");
+      select.innerHTML = `<option value="">-- Pilih --</option>`;
+
+      soal.Kanan.forEach(kananItem => {
+        // Amankan jika format Kanan dari guru berupa object atau string
+        const opsi = typeof kananItem === "object" ? kananItem.teks : kananItem;
+        
+        const opt = document.createElement("option");
+        opt.value = opsi;
+        opt.innerText = opsi;
+        if (answers[current][idx] === opsi) opt.selected = true;
+        select.appendChild(opt);
+      });
+
+      select.onchange = () => {
+        answers[current][idx] = select.value;
+        saveAnswer().catch(()=>{});
+        renderNav();
+        checkAllAnswered();
+      };
+
+      // 📸 GAMBAR MENU KIRI MENJODOHKAN (jika ada)
+      const teks = typeof kiriItem === "object" ? kiriItem.teks : kiriItem;
+      const imgKiriHtml = (typeof kiriItem === "object" && kiriItem.img) ? `<br><img src="${kiriItem.img}" style="max-height:80px; display:block; margin-top:5px; border-radius:4px;">` : "";
+
+      row.innerHTML = `<b>${idx + 1}. ${teks}</b> ${imgKiriHtml}<br>`;
+      row.appendChild(select);
+      optsDiv.appendChild(row);
+    });
+
+    updateNavButtons();
+    checkAllAnswered();
+    return;
+  }
 
   // =====================
   // SOAL LAIN: single / multiple / truefalse
@@ -816,7 +831,7 @@ if (soal.tipe === "jodohkan") {
   questionDiv.innerHTML = `
     <div class="label-tipe">${jenisSoal}</div>
     <div class="soal-nomor">Soal ${nomor} dari ${total}</div>
-    <div>${soal.Pertanyaan || ""}</div>
+    ${imgHtml} <div>${soal.Pertanyaan || ""}</div>
   `;
 
   // TRUE / FALSE (single)
@@ -842,7 +857,15 @@ if (soal.tipe === "jodohkan") {
 
       const label = document.createElement("label");
       label.appendChild(radio);
-      label.appendChild(document.createTextNode(" " + o.label));
+
+      // 📸 GAMBAR OPSI TRUE/FALSE (jika ada imgA atau imgB)
+      let optTfImg = "";
+      if (o.key === "A" && soal.imgA) optTfImg = `<br><img src="${soal.imgA}" style="max-height:100px; display:block; margin-top:5px; border-radius:4px;">`;
+      if (o.key === "B" && soal.imgB) optTfImg = `<br><img src="${soal.imgB}" style="max-height:100px; display:block; margin-top:5px; border-radius:4px;">`;
+      
+      const spanTeks = document.createElement("span");
+      spanTeks.innerHTML = " " + o.label + optTfImg;
+      label.appendChild(spanTeks);
 
       div.appendChild(label);
       optsDiv.appendChild(div);
@@ -883,7 +906,13 @@ if (soal.tipe === "jodohkan") {
 
       const label = document.createElement("label");
       label.appendChild(input);
-      label.appendChild(document.createTextNode(" " + opt + ". " + soal[opt]));
+
+      // 📸 GAMBAR OPSI A, B, C, D, E (jika ada)
+      let imgOptHtml = soal["img" + opt] ? `<br><img src="${soal["img" + opt]}" style="max-height:120px; display:block; margin-top:5px; border-radius:4px;">` : "";
+      
+      const spanTeks = document.createElement("span");
+      spanTeks.innerHTML = " " + opt + ". " + soal[opt] + imgOptHtml;
+      label.appendChild(spanTeks);
 
       div.appendChild(label);
       optsDiv.appendChild(div);
@@ -892,7 +921,7 @@ if (soal.tipe === "jodohkan") {
 
   updateNavButtons();
   checkAllAnswered();
-    }
+}
   function validasiJodohkan(soal) {
   if (!Array.isArray(soal.Kiri) || soal.Kiri.length < 2) return false;
   if (!Array.isArray(soal.Kanan) || soal.Kanan.length < 2) return false;
