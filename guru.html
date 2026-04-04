@@ -737,25 +737,24 @@ return {
 };
 }
 
-  // =====================
+ // =====================
   // TRUE FALSE GROUP
   // =====================
   if (tipe === "tf_group") {
     const pernyataan = [];
-
     for (let i = 1; i <= 10; i++) {
       const teks = row[`P${i}`];
       const jwb = (row[`J${i}`] || "").toString().toLowerCase();
 
       if (teks && (jwb === "benar" || jwb === "salah")) {
         pernyataan.push({
-  teks,
-  img: getImg(row[`ImgP${i}`]),
-  jawaban: jwb === "benar"
-});
+          teks,
+          img: getImg(row[`ImgP${i}`]),
+          // ✅ FIX: Simpan sebagai "B" atau "S" agar cocok dengan exam.html
+          jawabanBenar: jwb === "benar" ? "B" : "S" 
+        });
       }
     }
-
     return {
       tipe: "tf_group",
       Pertanyaan: row.Pertanyaan || "",
@@ -764,23 +763,21 @@ return {
     };
   }
 
-  // =====================
+// =====================
   // TRUE / FALSE TUNGGAL
   // =====================
-if (tipe === "truefalse") {
- return {
-  tipe: "truefalse",
-  Pertanyaan: row.Pertanyaan || "",
-  img: getImg(row.Gambar),
-
-  A: row.A || "Benar",
-  imgA: getImg(row.ImgA),
-
-  B: row.B || "Salah",
-  imgB: getImg(row.ImgB),
-
-  JawabanBenar: (row.JawabanBenar || "").toLowerCase() === "benar"
-};
+  if (tipe === "truefalse") {
+    return {
+      tipe: "truefalse",
+      Pertanyaan: row.Pertanyaan || "",
+      img: getImg(row.Gambar),
+      A: row.A || "Benar",
+      imgA: getImg(row.ImgA),
+      B: row.B || "Salah",
+      imgB: getImg(row.ImgB),
+      // ✅ FIX: Konversi teks "Benar" di excel jadi huruf "A", "Salah" jadi "B"
+      JawabanBenar: (row.JawabanBenar || "").toString().toLowerCase() === "benar" ? "A" : "B"
+    };
   }
           // =====================
 // ISIAN PENDEK
@@ -801,32 +798,27 @@ if (tipe === "short") {
 };
 }
 
-  // =====================
+// =====================
   // PILIHAN GANDA / KOMPLEKS
   // =====================
-const jawaban = (row.JawabanBenar || "").toString().trim();
-return {
-  tipe: tipe || "single",
-  Pertanyaan: row.Pertanyaan || "",
-  img: getImg(row.Gambar),
+  let jawaban = (row.JawabanBenar || "").toString().trim().toUpperCase();
+  
+  // ✅ FIX: Jika tipe multiple, pecah "B,C" menjadi array ["B", "C"]
+  if (tipe === "multiple") {
+      jawaban = jawaban.split(",").map(x => x.trim());
+  }
 
-  A: row.A || "",
-  imgA: getImg(row.ImgA),
-
-  B: row.B || "",
-  imgB: getImg(row.ImgB),
-
-  C: row.C || "",
-  imgC: getImg(row.ImgC),
-
-  D: row.D || "",
-  imgD: getImg(row.ImgD),
-
-  E: row.E || "",
-  imgE: getImg(row.ImgE),
-
-  JawabanBenar: jawaban
-};
+  return {
+    tipe: tipe || "single",
+    Pertanyaan: row.Pertanyaan || "",
+    img: getImg(row.Gambar),
+    A: row.A || "", imgA: getImg(row.ImgA),
+    B: row.B || "", imgB: getImg(row.ImgB),
+    C: row.C || "", imgC: getImg(row.ImgC),
+    D: row.D || "", imgD: getImg(row.ImgD),
+    E: row.E || "", imgE: getImg(row.ImgE),
+    JawabanBenar: jawaban
+  };
 }
  );
     
