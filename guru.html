@@ -777,7 +777,7 @@ return {
   B: row.B || "Salah",
   imgB: getImg(row.ImgB),
 
-  JawabanBenar: jawaban
+  JawabanBenar: (row.JawabanBenar || "").toLowerCase() === "benar"
 };
   }
           // =====================
@@ -802,6 +802,7 @@ if (tipe === "short") {
   // =====================
   // PILIHAN GANDA / KOMPLEKS
   // =====================
+const jawaban = (row.JawabanBenar || "").toString().trim();
 return {
   tipe: tipe || "single",
   Pertanyaan: row.Pertanyaan || "",
