@@ -1101,58 +1101,75 @@ if (soal.tipe === "jodohkan") {
       }, { merge: true });
     }
     // ============================
-// 💯 Fungsi Penilaian Jawaban
-// ============================
-function hitungSkor() {
-  let skor = 0;
+    // 💯 Fungsi Penilaian Jawaban
+    // ============================
+    window.hitungSkor = function() {
+      let skor = 0;
 
-  soalData.forEach((soal, i) => {
-    const jawaban = answers[i];
-    // =====================
-// PENILAIAN ISIAN PENDEK
-// =====================
-if (soal.tipe === "short") {
-  const jawabanSiswa = (answers[i] || "")
-    .toString()
-    .trim()
-    .toLowerCase();
+      soalData.forEach((soal, i) => {
+        const jawaban = answers[i];
+        
+        // =====================
+        // PENILAIAN ISIAN PENDEK
+        // =====================
+        if (soal.tipe === "short") {
+          const jawabanSiswa = (answers[i] || "").toString().trim().toLowerCase();
+          if (soal.JawabanBenar && soal.JawabanBenar.includes(jawabanSiswa)) {
+            skor++;
+          }
+          return;
+        }
+        
+        // =====================
+        // MENJODOHKAN
+        // =====================
+        if (soal.tipe === "jodohkan") {
+          let benar = true;
+          if(soal.JawabanBenar) {
+            soal.JawabanBenar.forEach((jb, idx) => {
+              if (jawaban?.[idx] !== jb) benar = false;
+            });
+            if (benar) skor++;
+          }
+          return;
+        }
 
-  if (soal.JawabanBenar.includes(jawabanSiswa)) {
-    skor++;
-  }
-  return;
-}
-    
-    if (soal.tipe === "jodohkan") {
-  let benar = true;
-  soal.JawabanBenar.forEach((jb, i) => {
-    if (jawaban?.[i] !== jb) benar = false;
-  });
-  if (benar) skor++;
-  return;
-}
+        // =====================
+        // TF GROUP
+        // =====================
+        if (soal.tipe === "tf_group") {
+          let benar = true;
+          if(soal.Pernyataan) {
+            soal.Pernyataan.forEach((p, idx) => {
+              // p.jawabanBenar isinya "B" atau "S", jawaban?.[idx] juga "B" atau "S"
+              if (jawaban?.[idx] !== p.jawabanBenar) benar = false;
+            });
+            if (benar) skor++;
+          }
+          return;
+        }
 
-    if (soal.tipe === "tf_group") {
-      let benar = true;
-      soal.Pernyataan.forEach((p, idx) => {
-        if (jawaban?.[idx] !== p.jawabanBenar) benar = false;
+        // =====================
+        // MULTIPLE CHOICES (Lebih dari 1 jawaban)
+        // =====================
+        if (soal.tipe === "multiple") {
+          if (Array.isArray(jawaban) && Array.isArray(soal.JawabanBenar)) {
+            // Urutkan array lalu bandingkan agar posisi pilih tidak ngaruh
+            if (arraySama(jawaban.sort(), soal.JawabanBenar.sort())) {
+              skor++;
+            }
+          }
+        } 
+        // =====================
+        // SINGLE & TRUEFALSE
+        // =====================
+        else {
+          if (jawaban === soal.JawabanBenar) skor++;
+        }
       });
-      if (benar) skor++;
-      return;
-    }
 
-    if (soal.tipe === "multiple") {
-      if (Array.isArray(jawaban) &&
-          arraySama(jawaban.sort(), soal.jawabanBenar.sort())) {
-        skor++;
-      }
-    } else {
-      if (jawaban === soal.jawabanBenar) skor++;
+      return skor;
     }
-  });
-
-  return skor;
-                   }
 
 function arraySama(a, b) {
   return a.length === b.length && a.every((v, i) => v === b[i]);
