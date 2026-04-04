@@ -699,6 +699,11 @@ window.cabutAksesSiswa = async function(soalId, uid, nama) {
         const workbook = XLSX.read(data, { type: "array" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet);
+        function getImg(val) {
+  if (!val) return "";
+  if (typeof val === "string" && val.startsWith("http")) return val;
+  return val; // base64 juga bisa
+}
         const soal = rows.map(row => {
   const tipe = (row.Tipe || "").toLowerCase();
 
@@ -710,13 +715,26 @@ if (tipe === "jodohkan") {
   const kanan = (row.Kanan || "").split("|").map(x => x.trim()).filter(Boolean);
   const jawaban = (row.JawabanBenar || "").split("|").map(x => x.trim());
 
-  return {
-    tipe: "jodohkan",
-    Pertanyaan: row.Pertanyaan || "",
-    Kiri: kiri,
-    Kanan: kanan,
-    JawabanBenar: jawaban
-  };
+ const imgKiri = (row.ImgKiri || "").split("|");
+const imgKanan = (row.ImgKanan || "").split("|");
+
+return {
+  tipe: "jodohkan",
+  Pertanyaan: row.Pertanyaan || "",
+  img: getImg(row.Gambar),
+
+  Kiri: kiri.map((k, i) => ({
+    teks: k,
+    img: getImg(imgKiri[i])
+  })),
+
+  Kanan: kanan.map((k, i) => ({
+    teks: k,
+    img: getImg(imgKanan[i])
+  })),
+
+  JawabanBenar: jawaban
+};
 }
 
   // =====================
@@ -731,9 +749,10 @@ if (tipe === "jodohkan") {
 
       if (teks && (jwb === "benar" || jwb === "salah")) {
         pernyataan.push({
-          teks,
-          jawaban: jwb === "benar"
-        });
+  teks,
+  img: getImg(row[`ImgP${i}`]),
+  jawaban: jwb === "benar"
+});
       }
     }
 
@@ -747,18 +766,19 @@ if (tipe === "jodohkan") {
   // =====================
   // TRUE / FALSE TUNGGAL
   // =====================
-  if (tipe === "truefalse") {
-    const jawaban = (row.JawabanBenar || "").toString().toLowerCase() === "benar"
-      ? ["a"]
-      : ["b"];
+ return {
+  tipe: "truefalse",
+  Pertanyaan: row.Pertanyaan || "",
+  img: getImg(row.Gambar),
 
-    return {
-      tipe: "truefalse",
-      Pertanyaan: row.Pertanyaan || "",
-      A: row.A || "Benar",
-      B: row.B || "Salah",
-      JawabanBenar: jawaban
-    };
+  A: row.A || "Benar",
+  imgA: getImg(row.ImgA),
+
+  B: row.B || "Salah",
+  imgB: getImg(row.ImgB),
+
+  JawabanBenar: jawaban
+};
   }
           // =====================
 // ISIAN PENDEK
@@ -770,34 +790,40 @@ if (tipe === "short") {
     return null; // skip soal invalid
   }
 
-  return {
-    tipe: "short",
-    Pertanyaan: row.Pertanyaan || "",
-    JawabanBenar: jb.split("|").map(j =>
-      j.trim().toLowerCase()
-    )
-  };
+ return {
+  tipe: "short",
+  Pertanyaan: row.Pertanyaan || "",
+  img: getImg(row.Gambar),
+
+  JawabanBenar: jb.split("|").map(j => j.trim().toLowerCase())
+};
 }
 
   // =====================
   // PILIHAN GANDA / KOMPLEKS
   // =====================
-  const jawaban = (row.JawabanBenar || "")
-    .toString()
-    .toLowerCase()
-    .split(",")
-    .map(j => j.trim());
+return {
+  tipe: tipe || "single",
+  Pertanyaan: row.Pertanyaan || "",
+  img: getImg(row.Gambar),
 
-  return {
-    tipe: tipe || "single",
-    Pertanyaan: row.Pertanyaan || "",
-    A: row.A || "",
-    B: row.B || "",
-    C: row.C || "",
-    D: row.D || "",
-    E: row.E || "",
-    JawabanBenar: jawaban
-  };
+  A: row.A || "",
+  imgA: getImg(row.ImgA),
+
+  B: row.B || "",
+  imgB: getImg(row.ImgB),
+
+  C: row.C || "",
+  imgC: getImg(row.ImgC),
+
+  D: row.D || "",
+  imgD: getImg(row.ImgD),
+
+  E: row.E || "",
+  imgE: getImg(row.ImgE),
+
+  JawabanBenar: jawaban
+};
 }
  );
     
