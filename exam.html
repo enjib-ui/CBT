@@ -468,7 +468,8 @@ submitNo.addEventListener('click', () => {
         submitted: false
       }, { merge: true });
 
-      const singleSoal = soalFound.soal.filter(q => q.tipe === "single");
+const daftarSoal = soalFound.soal || [];
+const singleSoal = soalFound.soal.filter(q => q.tipe === "single");
 const multipleSoal = soalFound.soal.filter(q => q.tipe === "multiple");
 const trueFalseSoal = soalFound.soal.filter(q => q.tipe === "truefalse");
 const tfGroupSoal = soalFound.soal.filter(q => q.tipe === "tf_group");
