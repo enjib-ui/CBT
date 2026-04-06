@@ -757,21 +757,43 @@ function renderQuestion() {
   // =====================
   // MENJODOHKAN
   // =====================
-  if (soal.tipe === "jodohkan") {
+  function validasiJodohkan(soal) {
+  if (!soal) return false;
 
-    // ⛔ VALIDASI DATA
-    if (!validasiJodohkan(soal)) {
-      questionDiv.innerHTML = `
-        <div class="label-tipe">MENJODOHKAN</div>
-        <div style="color:red;font-weight:bold">
-          ❌ Template soal MENJODOHKAN tidak valid.<br>
-          Silakan hubungi guru/pengawas.
-        </div>
-      `;
-      optsDiv.innerHTML = "";
-      updateNavButtons();
-      return;
-    }
+  if (!Array.isArray(soal.Kiri) || !Array.isArray(soal.Kanan)) {
+    console.log("❌ Bukan array");
+    return false;
+  }
+
+  if (soal.Kiri.length === 0 || soal.Kanan.length === 0) {
+    console.log("❌ Kosong");
+    return false;
+  }
+
+  if (soal.Kiri.length !== soal.Kanan.length) {
+    console.log("❌ Jumlah kiri & kanan beda");
+    return false;
+  }
+
+  if (!Array.isArray(soal.JawabanBenar)) {
+    console.log("❌ Jawaban bukan array");
+    return false;
+  }
+
+  if (soal.JawabanBenar.length !== soal.Kiri.length) {
+    console.log("❌ Jumlah jawaban tidak cocok");
+    return false;
+  }
+
+  // ✅ CEK FORMAT 1-1
+  const validFormat = soal.JawabanBenar.every(j => /^\d+-\d+$/.test(j));
+  if (!validFormat) {
+    console.log("❌ Format jawaban salah");
+    return false;
+  }
+
+  return true;
+  }
 
     questionDiv.innerHTML = `
       <div class="label-tipe">MENJODOHKAN</div>
