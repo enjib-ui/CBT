@@ -718,6 +718,25 @@ if (tipe === "jodohkan") {
  const imgKiri = (row.ImgKiri || "").split("|");
 const imgKanan = (row.ImgKanan || "").split("|");
 
+  if (tipe === "jodohkan") {
+  const kiri = (row.Kiri || "").split("|").map(x => x.trim()).filter(Boolean);
+  const kanan = (row.Kanan || "").split("|").map(x => x.trim()).filter(Boolean);
+  const jawaban = (row.JawabanBenar || "").split("|").map(x => x.trim());
+
+  const imgKiri = (row.ImgKiri || "").split("|");
+  const imgKanan = (row.ImgKanan || "").split("|");
+
+  // ✅ VALIDASI PENTING
+  if (!kiri.length || !kanan.length || kiri.length !== kanan.length) {
+    console.log("❌ Jodohkan tidak valid:", row);
+    return null;
+  }
+
+  if (jawaban.length !== kiri.length) {
+    console.log("❌ Jawaban tidak sesuai jumlah:", row);
+    return null;
+  }
+
 return {
   tipe: "jodohkan",
   Pertanyaan: row.Pertanyaan || "",
