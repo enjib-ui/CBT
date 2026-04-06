@@ -710,14 +710,6 @@ window.cabutAksesSiswa = async function(soalId, uid, nama) {
              // =====================
 // MENJODOHKAN
 // =====================
-if (tipe === "jodohkan") {
-  const kiri = (row.Kiri || "").split("|").map(x => x.trim()).filter(Boolean);
-  const kanan = (row.Kanan || "").split("|").map(x => x.trim()).filter(Boolean);
-  const jawaban = (row.JawabanBenar || "").split("|").map(x => x.trim());
-
- const imgKiri = (row.ImgKiri || "").split("|");
-const imgKanan = (row.ImgKanan || "").split("|");
-
   if (tipe === "jodohkan") {
   const kiri = (row.Kiri || "").split("|").map(x => x.trim()).filter(Boolean);
   const kanan = (row.Kanan || "").split("|").map(x => x.trim()).filter(Boolean);
@@ -839,7 +831,7 @@ if (tipe === "short") {
     JawabanBenar: jawaban
   };
 }
- );
+ );.filter(Boolean);
     
         try {
           await setDoc(doc(db, "soal", `${kelas}_${mapel}`), { soal, aktif:false });
