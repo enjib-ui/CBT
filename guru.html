@@ -831,7 +831,7 @@ if (tipe === "short") {
     JawabanBenar: jawaban
   };
 }
- );.filter(Boolean);
+ ).filter(Boolean);
     
         try {
           await setDoc(doc(db, "soal", `${kelas}_${mapel}`), { soal, aktif:false });
