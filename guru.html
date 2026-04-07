@@ -701,8 +701,19 @@ window.cabutAksesSiswa = async function(soalId, uid, nama) {
         const rows = XLSX.utils.sheet_to_json(sheet);
         function getImg(val) {
   if (!val) return "";
-  if (typeof val === "string" && val.startsWith("http")) return val;
-  return val; // base64 juga bisa
+  
+  val = val.toString().trim();
+
+  // auto convert google drive
+  if (val.includes("drive.google.com")) {
+    const match = val.match(/id=([^&]+)/) || val.match(/\/d\/([^/]+)/);
+    if (match) {
+      return `https://lh3.googleusercontent.com/d/${match[1]}`;
+    }
+  }
+
+  return val;
+        }
 }
         const soal = rows.map(row => {
   const tipe = (row.Tipe || "").toLowerCase();
