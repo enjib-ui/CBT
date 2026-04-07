@@ -892,42 +892,67 @@ if (soal.tipe === "jodohkan") {
 
     kananDiv.appendChild(el);
   });
-
+const lineColors = [
+  "#e74c3c", // merah
+  "#3498db", // biru
+  "#2ecc71", // hijau
+  "#f39c12", // orange
+  "#9b59b6", // ungu
+  "#1abc9c", // tosca
+  "#e67e22", // oranye tua
+  "#34495e"  // abu gelap
+];
   // =====================
   // 🎯 GAMBAR GARIS
   // =====================
   function drawLines() {
-    svg.innerHTML = "";
+  svg.innerHTML = "";
 
-    Object.keys(answers[current]).forEach(k => {
-      const [a, b] = answers[current][k].split("-");
+  Object.keys(answers[current]).forEach((k, index) => {
+    const val = answers[current][k];
+    if (!val) return;
 
-      const kiriEl = kiriDiv.children[a - 1];
-      const kananEl = kananDiv.children[b - 1];
+    const [a, b] = val.split("-");
 
-      if (!kiriEl || !kananEl) return;
+    const kiriEl = kiriDiv.children[a - 1];
+    const kananEl = kananDiv.children[b - 1];
 
-      const r1 = kiriEl.getBoundingClientRect();
-      const r2 = kananEl.getBoundingClientRect();
-      const parent = svg.getBoundingClientRect();
+    if (!kiriEl || !kananEl) return;
 
-      const x1 = r1.right - parent.left;
-      const y1 = r1.top + r1.height / 2 - parent.top;
+    const r1 = kiriEl.getBoundingClientRect();
+    const r2 = kananEl.getBoundingClientRect();
+    const parent = svg.getBoundingClientRect();
 
-      const x2 = r2.left - parent.left;
-      const y2 = r2.top + r2.height / 2 - parent.top;
+    const x1 = r1.right - parent.left;
+    const y1 = r1.top + r1.height / 2 - parent.top;
 
-      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      line.setAttribute("x1", x1);
-      line.setAttribute("y1", y1);
-      line.setAttribute("x2", x2);
-      line.setAttribute("y2", y2);
-      line.setAttribute("stroke", "#007bff");
-      line.setAttribute("stroke-width", "2");
+    const x2 = r2.left - parent.left;
+    const y2 = r2.top + r2.height / 2 - parent.top;
 
-      svg.appendChild(line);
-    });
-  }
+    // 🔥 CONTROL POINT (BIAR MELENGKUNG)
+    const cx1 = x1 + 80;
+    const cy1 = y1;
+
+    const cx2 = x2 - 80;
+    const cy2 = y2;
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+
+    const d = `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`;
+
+    path.setAttribute("d", d);
+
+    // 🎨 WARNA BERBEDA
+    const color = lineColors[index % lineColors.length];
+    path.setAttribute("stroke", color);
+
+    path.setAttribute("stroke-width", "3");
+    path.setAttribute("fill", "none");
+
+    svg.appendChild(path);
+  });
+      }
+  
 
   // render ulang garis (misal reload)
   setTimeout(drawLines, 200);
