@@ -877,18 +877,43 @@ if (soal.tipe === "jodohkan") {
     `;
 
     el.onclick = () => {
-      if (selectedKiri === null) return;
 
-      // simpan jawaban format 1-2
-      answers[current][selectedKiri] = `${selectedKiri + 1}-${j + 1}`;
+  // 🔴 CEK: apakah kanan ini sudah dipakai?
+  let existingKey = null;
 
-      selectedKiri = null;
+  Object.keys(answers[current]).forEach(k => {
+    const val = answers[current][k];
+    if (!val) return;
 
-      saveAnswer().catch(()=>{});
-      renderNav();
-      checkAllAnswered();
-      drawLines();
-    };
+    const [a, b] = val.split("-");
+    if (parseInt(b) === j + 1) {
+      existingKey = k;
+    }
+  });
+
+  // ❌ JIKA SUDAH TERHUBUNG → HAPUS
+  if (existingKey !== null) {
+    delete answers[current][existingKey];
+
+    drawLines();
+    saveAnswer().catch(()=>{});
+    renderNav();
+    checkAllAnswered();
+    return;
+  }
+
+  // ✅ BUAT HUBUNGAN BARU
+  if (selectedKiri === null) return;
+
+  answers[current][selectedKiri] = `${selectedKiri + 1}-${j + 1}`;
+
+  selectedKiri = null;
+
+  drawLines();
+  saveAnswer().catch(()=>{});
+  renderNav();
+  checkAllAnswered();
+};
 
     kananDiv.appendChild(el);
   });
