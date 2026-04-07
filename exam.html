@@ -208,6 +208,34 @@ header {
   text-transform: uppercase;
   font-size: 14px;
 }
+.jodohkan-container {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+}
+
+.kolom {
+  width: 45%;
+}
+
+.item {
+  padding: 10px;
+  margin: 6px 0;
+  background: #f1f1f1;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.kiri-item.active {
+  background: #cce5ff;
+}
+
+#lineLayer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
 
 .soal-nomor {
   color: #3498db;
@@ -829,21 +857,114 @@ function renderQuestion() {
         saveAnswer().catch(()=>{});
         renderNav();
         checkAllAnswered();
-      };
+if (soal.tipe === "jodohkan") {
 
-      // 📸 GAMBAR MENU KIRI MENJODOHKAN (jika ada)
-      const teks = typeof kiriItem === "object" ? kiriItem.teks : kiriItem;
-      const imgKiriHtml = (typeof kiriItem === "object" && kiriItem.img) ? `<br><img src="${kiriItem.img}" style="max-height:80px; display:block; margin-top:5px; border-radius:4px;">` : "";
-
-      row.innerHTML = `<b>${idx + 1}. ${teks}</b> ${imgKiriHtml}<br>`;
-      row.appendChild(select);
-      optsDiv.appendChild(row);
-    });
-
-    updateNavButtons();
-    checkAllAnswered();
+  if (!validasiJodohkan(soal)) {
+    questionDiv.innerHTML = `<b style="color:red">❌ Tidak valid</b>`;
     return;
   }
+
+  questionDiv.innerHTML = `
+    <div class="label-tipe">MENJODOHKAN</div>
+    <b>${soal.Pertanyaan}</b>
+  `;
+
+  optsDiv.innerHTML = `
+    <div class="jodohkan-container">
+      <div class="kolom kiri" id="kiri"></div>
+      <div class="kolom kanan" id="kanan"></div>
+      <svg id="lineLayer"></svg>
+    </div>
+  `;
+
+  const kiriDiv = document.getElementById("kiri");
+  const kananDiv = document.getElementById("kanan");
+  const svg = document.getElementById("lineLayer");
+
+  let selectedKiri = null;
+  if (!answers[current]) answers[current] = {};
+
+  // 🔵 KIRI (dengan gambar)
+  soal.Kiri.forEach((item, i) => {
+    const el = document.createElement("div");
+    el.className = "item kiri-item";
+
+    el.innerHTML = `
+      <b>${i+1}. ${item.teks}</b>
+      ${item.img ? `<br><img src="${item.img}" style="max-height:80px;margin-top:5px;">` : ""}
+    `;
+
+    el.onclick = () => {
+      selectedKiri = i;
+      document.querySelectorAll(".kiri-item").forEach(e => e.classList.remove("active"));
+      el.classList.add("active");
+    };
+
+    kiriDiv.appendChild(el);
+  });
+
+  // 🔴 KANAN (dengan gambar)
+  soal.Kanan.forEach((item, j) => {
+    const el = document.createElement("div");
+    el.className = "item kanan-item";
+
+    el.innerHTML = `
+      ${item.teks}
+      ${item.img ? `<br><img src="${item.img}" style="max-height:80px;margin-top:5px;">` : ""}
+    `;
+
+    el.onclick = () => {
+      if (selectedKiri === null) return;
+
+      answers[current][selectedKiri] = `${selectedKiri+1}-${j+1}`;
+      selectedKiri = null;
+
+      drawLines();
+      saveAnswer().catch(()=>{});
+      renderNav();
+      checkAllAnswered();
+    };
+
+    kananDiv.appendChild(el);
+  });
+
+  function drawLines() {
+    svg.innerHTML = "";
+
+    Object.keys(answers[current]).forEach(k => {
+      const [a,b] = answers[current][k].split("-");
+
+      const kiriEl = kiriDiv.children[a-1];
+      const kananEl = kananDiv.children[b-1];
+
+      const r1 = kiriEl.getBoundingClientRect();
+      const r2 = kananEl.getBoundingClientRect();
+      const parent = svg.getBoundingClientRect();
+
+      const x1 = r1.right - parent.left;
+      const y1 = r1.top + r1.height/2 - parent.top;
+
+      const x2 = r2.left - parent.left;
+      const y2 = r2.top + r2.height/2 - parent.top;
+
+      const line = document.createElementNS("http://www.w3.org/2000/svg","line");
+      line.setAttribute("x1", x1);
+      line.setAttribute("y1", y1);
+      line.setAttribute("x2", x2);
+      line.setAttribute("y2", y2);
+      line.setAttribute("stroke", "blue");
+      line.setAttribute("stroke-width", "2");
+
+      svg.appendChild(line);
+    });
+  }
+
+  setTimeout(drawLines, 200);
+
+  updateNavButtons();
+  checkAllAnswered();
+  return;
+}
 
   // =====================
   // SOAL LAIN: single / multiple / truefalse
